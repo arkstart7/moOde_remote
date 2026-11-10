@@ -27,7 +27,7 @@ export const ru: TranslationDictionary = {
      * --------------------------------------------------------
      */
     'settings.title': 'Настройки',
-    'settings.urlLabel': 'URL Foobar2000',
+    'settings.urlLabel': 'URL MPD',
     'settings.portLabel': 'Порт',
     'settings.checking': 'Проверка настроек...',
     'settings.loadFailed': 'Не удалось загрузить настройки',
@@ -114,110 +114,77 @@ export const ru: TranslationDictionary = {
     'err.unknown': 'Неизвестная ошибка.',
     'err.generic': '{details}',
     'err.response.invalid': 'Сервер вернул некорректный ответ.',
-    'err.settings.notFound': 'Настройки Foobar2000 не найдены.',
+    'err.settings.notFound': 'Настройки MPD не найдены.',
     'err.settings.loadFailed': 'Не удалось загрузить настройки.',
     'err.server.timeout':
         'Сервер не отвечает. Проверьте, что foobar2000 запущен на компьютере.',
 
     /*
      * --------------------------------------------------------
-     * Ошибки URL и порта Foobar2000
+     * Ошибки URL и порта MPD
      * --------------------------------------------------------
      */
-    'err.url.empty': 'Не указан URL Foobar2000.',
-    'err.url.invalid': 'Некорректный URL Foobar2000.',
-    'err.url.protocol': 'URL Foobar2000 должен использовать HTTP или HTTPS.',
-    'err.port.notNumber': 'Порт Foobar2000 должен быть числом.',
-    'err.port.outOfRange': 'Порт Foobar2000 должен быть от 1 до 65535.',
+    'err.url.empty': 'Не указан URL MPD.',
+    'err.url.invalid': 'Некорректный URL MPD.',
+    'err.url.protocol': 'URL MPD должен использовать HTTP или HTTPS.',
+    'err.port.notNumber': 'Порт MPD должен быть числом.',
+    'err.port.outOfRange': 'Порт MPD должен быть от 1 до 65535.',
 
     /*
      * --------------------------------------------------------
      * Ошибки проверки настроек
      * --------------------------------------------------------
      */
-    'err.validation.noUrl': 'Не указан URL Foobar2000',
-    'err.validation.noConnection': 'Нет связи с Foobar2000.{details}',
-    'err.validation.noConnectionHttp': 'Нет связи с Foobar2000 (HTTP {status})',
+    'err.validation.noUrl': 'Не указан URL MPD',
+    'err.validation.noConnection': 'Нет связи с MPD.{details}',
 
     /*
      * --------------------------------------------------------
-     * Ошибки списка плейлистов Beefweb
+     * Ошибки списка плейлистов MPD
      * --------------------------------------------------------
      */
     'err.playlists.listFailed':
-        'Не удалось получить список плейлистов Beefweb.{details}',
-    'err.playlists.listFailedHttp':
-        'Не удалось получить список плейлистов Beefweb. ' +
-        'HTTP {status}.{details}',
+        'Не удалось получить список плейлистов MPD.{details}',
 
     /*
      * --------------------------------------------------------
-     * Ошибки плейлиста-каталога "beefweb-catalog"
+     * Ошибки плейлиста-каталога "медиатека MPD"
      * --------------------------------------------------------
      */
     'err.catalog.readFailed':
         'Не удалось прочитать элементы плейлиста "{playlist}".{details}',
-    'err.catalog.readFailedHttp':
-        'Не удалось прочитать элементы плейлиста "{playlist}". ' +
-        'HTTP {status}.{details}',
-    'err.catalog.missing':
-        'Плейлист "{playlist}" не найден. В foobar2000 откройте ' +
-        'Media Library, выделите все альбомы и отправьте их в новый ' +
-        'плейлист с именем "{playlist}".',
     'err.catalog.empty':
         'Плейлист "{playlist}" пуст. Отправьте в него всю медиатеку ' +
         'из foobar2000.',
     'err.catalog.tooLarge':
         'Плейлист "{playlist}" содержит {total} элементов, что ' +
         'превышает предел {limit}.',
-    'err.catalog.rowsMismatch':
-        'Плейлист "{playlist}": прочитано строк: {count} из {total}.',
-    'err.catalog.invalidResponse':
-        'Плейлист "{playlist}": сервер вернул некорректный ответ.',
-    'err.catalog.chunkTooLarge':
-        'Плейлист "{playlist}": получено элементов: {count} вместо {expected}.',
-    'err.catalog.columnsMismatch':
-        'Плейлист "{playlist}": сервер вернул колонок: {count} ' +
-        'вместо {expected}.',
 
     /*
      * --------------------------------------------------------
-     * Ошибки рабочего плейлиста "beefweb"
+     * Ошибки рабочего очереди MPD
      * --------------------------------------------------------
      */
     'err.playlist.tracksUnavailable':
         'Не удалось получить треки текущего альбома.',
-    'err.playlist.beefwebMissing': 'Плейлист "beefweb" не найден.',
-    'err.playlist.createFailed':
-        'Не удалось создать плейлист "beefweb".{details}',
-    'err.playlist.createFailedHttp':
-        'Не удалось создать плейлист "beefweb". HTTP {status}.{details}',
-    'err.playlist.clearFailed':
-        'Не удалось очистить плейлист "beefweb".{details}',
-    'err.playlist.clearFailedHttp':
-        'Не удалось очистить плейлист "beefweb". HTTP {status}.{details}',
+    'err.playlist.clearFailed': 'Не удалось очистить очередь MPD.{details}',
     'err.playlist.addItemsFailed':
-        'Не удалось добавить треки в плейлист "beefweb".{details}',
-    'err.playlist.addItemsFailedHttp':
-        'Не удалось добавить треки в плейлист "beefweb". ' +
-        'HTTP {status}.{details}',
+        'Не удалось добавить треки в очередь MPD.{details}',
 
     'err.playlist.itemsFailed':
         'Не удалось прочитать треки плейлиста.{details}',
-    'err.playlist.itemsFailedHttp':
-        'Не удалось прочитать треки плейлиста. HTTP {status}.{details}',
     'err.playlist.emptyPlaylist': 'Плейлист пуст.',
     'err.playlist.selectFailed': 'Не удалось выбрать плейлист.{details}',
 
     /*
      * --------------------------------------------------------
-     * Ошибки плеера Beefweb
+     * Ошибки плеера MPD
      * --------------------------------------------------------
      */
     'err.player.stateFailed':
-        'Не удалось получить состояние проигрывателя Beefweb.{details}',
+        'Не удалось получить состояние проигрывателя MPD.{details}',
     'err.player.unknownState':
-        'Beefweb вернул неизвестное состояние проигрывателя.',
+        'MPD вернул неизвестное состояние проигрывателя.',
     'err.volume.notFinite': 'Громкость должна быть конечным числом.',
     'err.volume.setFailed': 'Не удалось изменить громкость.{details}',
     'err.volume.rangeUnknown': 'Не удалось определить диапазон громкости.',
@@ -238,7 +205,7 @@ export const ru: TranslationDictionary = {
      */
     'err.playback.changeFailed': 'Не удалось изменить состояние проигрывателя.',
     'err.track.switchFailed': 'Не удалось переключить трек.',
-    'err.album.loadFailed': 'Не удалось загрузить альбом в Foobar2000.',
+    'err.album.loadFailed': 'Не удалось загрузить альбом в MPD.',
 
     /*
      * --------------------------------------------------------
@@ -246,13 +213,7 @@ export const ru: TranslationDictionary = {
      * --------------------------------------------------------
      */
     'err.library.importFailed': 'Не удалось импортировать медиатеку.',
-    'err.artwork.catalogMismatch':
-        'Не удалось сопоставить альбомы с плейлистом ' +
-        '"beefweb-catalog". Обновите плейлист в foobar2000 ' +
-        'и перезапустите приложение.',
-    'err.artwork.fetchFailedHttp':
-        'Не удалось получить обложку альбома. HTTP {status}.',
-    'err.artwork.emptyResponse': 'Пустой ответ с обложкой альбома.',
+    'err.artwork.fetchFailed': 'Не удалось получить обложку альбома.{details}',
     'err.artwork.base64Unavailable':
         'Кодирование base64 недоступно в этом окружении.',
 };

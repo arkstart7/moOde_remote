@@ -1,18 +1,18 @@
 /**
- * Synchronization helpers for the Beefweb player and LibraryStore.
+ * Synchronization helpers for the MPD player and LibraryStore.
  */
 
-import { BeefwebPlayerSnapshot } from './beefwebPlayerService';
+import { MpdPlayerSnapshot } from './mpd/mpdPlayerService';
 
 import { libraryStore } from '../library/LibraryStore';
 
 /**
  * Synchronizes the active item and, optionally, its position.
  *
- * Returns true when the current track was changed automatically by Beefweb.
+ * Returns true when the current track was changed automatically by MPD.
  */
 export function syncPlaybackSnapshot(
-    snapshot: BeefwebPlayerSnapshot,
+    snapshot: MpdPlayerSnapshot,
     syncPosition = true,
 ): boolean {
     const activeIndex = snapshot.activeItem?.index;
@@ -21,7 +21,7 @@ export function syncPlaybackSnapshot(
     if (libraryStore.getPlaybackSource() === 'playlist') {
         /*
          * Плейлист: индекс activeItem указывает на строку
-         * плейлиста "beefweb", то есть на строку плейлиста,
+         * очереди MPD, то есть на строку плейлиста,
          * хранимого в LibraryStore.
          */
         const entries = libraryStore.getPlaylistEntries();

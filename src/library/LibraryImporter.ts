@@ -4,9 +4,8 @@
  * Преобразует исходную коллекцию Foobar2000 во внутреннюю
  * структуру Library.
  *
- * Источником данных служит плейлист-каталог Beefweb
- * "beefweb-catalog" (см. beefwebCatalogService), строки которого
- * приводятся к форме FoobarTrack.
+ * Источником данных служит медиатека MPD (см. mpdCatalogService),
+ * записи которой приводятся к форме FoobarTrack.
  */
 
 import { Library, LibraryTrack } from './types';

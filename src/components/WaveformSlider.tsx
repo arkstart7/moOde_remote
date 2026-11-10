@@ -1,5 +1,5 @@
 /**
- * @file BeefwebWaveformSlider.tsx
+ * @file WaveformSlider.tsx
  * @description Интерактивная полоса прогресса воспроизведения
  * в виде волновой формы аудио трека.
  */
@@ -120,7 +120,7 @@ function mulberry32(seed: number) {
     };
 }
 
-export default function BeefwebWaveformSlider({
+export default function WaveformSlider({
     trackId,
     currentTime,
     duration,
@@ -171,7 +171,7 @@ export default function BeefwebWaveformSlider({
      *
      * Важно:
      * gesture работает в JS через runOnJS(true), поэтому здесь
-     * можно напрямую вызывать callbacks, связанных с React/Beefweb.
+     * можно напрямую вызывать callbacks, связанных с React.
      */
     const getSeekPosition = useCallback(
         (touchX: number) => {

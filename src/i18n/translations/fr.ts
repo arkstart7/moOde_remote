@@ -22,7 +22,7 @@ export const fr: TranslationDictionary = {
      * --------------------------------------------------------
      */
     'settings.title': 'Paramètres',
-    'settings.urlLabel': 'URL de Foobar2000',
+    'settings.urlLabel': 'URL de MPD',
     'settings.portLabel': 'Port',
     'settings.checking': 'Vérification des paramètres...',
     'settings.loadFailed': 'Échec du chargement des paramètres',
@@ -110,112 +110,76 @@ export const fr: TranslationDictionary = {
     'err.unknown': 'Erreur inconnue.',
     'err.generic': '{details}',
     'err.response.invalid': 'Le serveur a renvoyé une réponse invalide.',
-    'err.settings.notFound':
-        'Les paramètres de Foobar2000 ne sont pas configurés.',
+    'err.settings.notFound': 'Les paramètres de MPD ne sont pas configurés.',
     'err.settings.loadFailed': 'Échec du chargement des paramètres.',
     'err.server.timeout':
         "Le serveur ne répond pas. Vérifiez que foobar2000 est lancé sur l'ordinateur.",
 
     /*
      * --------------------------------------------------------
-     * Erreurs d'URL et de port Foobar2000
+     * Erreurs d'URL et de port MPD
      * --------------------------------------------------------
      */
-    'err.url.empty': "L'URL de Foobar2000 n'est pas spécifiée.",
-    'err.url.invalid': 'URL de Foobar2000 invalide.',
-    'err.url.protocol': "L'URL de Foobar2000 doit utiliser HTTP ou HTTPS.",
-    'err.port.notNumber': 'Le port de Foobar2000 doit être un nombre.',
-    'err.port.outOfRange':
-        'Le port de Foobar2000 doit être compris entre 1 et 65535.',
+    'err.url.empty': "L'URL de MPD n'est pas spécifiée.",
+    'err.url.invalid': 'URL de MPD invalide.',
+    'err.url.protocol': "L'URL de MPD doit utiliser HTTP ou HTTPS.",
+    'err.port.notNumber': 'Le port de MPD doit être un nombre.',
+    'err.port.outOfRange': 'Le port de MPD doit être compris entre 1 et 65535.',
 
     /*
      * --------------------------------------------------------
      * Erreurs de vérification des paramètres
      * --------------------------------------------------------
      */
-    'err.validation.noUrl': "L'URL de Foobar2000 n'est pas spécifiée",
-    'err.validation.noConnection': 'Pas de connexion à Foobar2000.{details}',
-    'err.validation.noConnectionHttp':
-        'Pas de connexion à Foobar2000 (HTTP {status})',
+    'err.validation.noUrl': "L'URL de MPD n'est pas spécifiée",
+    'err.validation.noConnection': 'Pas de connexion à MPD.{details}',
 
     /*
      * --------------------------------------------------------
-     * Erreurs de la liste des listes de lecture Beefweb
+     * Erreurs de la liste des listes de lecture MPD
      * --------------------------------------------------------
      */
     'err.playlists.listFailed':
-        'Échec de la récupération de la liste des listes de lecture Beefweb.{details}',
-    'err.playlists.listFailedHttp':
-        'Échec de la récupération de la liste des listes de lecture Beefweb. ' +
-        'HTTP {status}.{details}',
+        'Échec de la récupération de la liste des listes de lecture MPD.{details}',
 
     /*
      * --------------------------------------------------------
-     * Erreurs du catalogue de la liste "beefweb-catalog"
+     * Erreurs du catalogue de la liste "медиатека MPD"
      * --------------------------------------------------------
      */
     'err.catalog.readFailed':
         'Échec de la lecture des éléments de la liste de lecture "{playlist}".{details}',
-    'err.catalog.readFailedHttp':
-        'Échec de la lecture des éléments de la liste de lecture "{playlist}". ' +
-        'HTTP {status}.{details}',
-    'err.catalog.missing':
-        'La liste de lecture "{playlist}" est introuvable. Dans foobar2000, ouvrez la bibliothèque multimédia, sélectionnez tous les albums et envoyez-les vers une nouvelle liste de lecture nommée "{playlist}".',
     'err.catalog.empty':
         'La liste de lecture "{playlist}" est vide. Envoyez-y toute votre bibliothèque multimédia.',
     'err.catalog.tooLarge':
         'La liste de lecture "{playlist}" contient {total} éléments, ce qui dépasse la limite de {limit}.',
-    'err.catalog.rowsMismatch':
-        'Liste de lecture "{playlist}" : lignes lues : {count} sur {total}.',
-    'err.catalog.invalidResponse':
-        'Liste de lecture "{playlist}" : le serveur a renvoyé une réponse invalide.',
-    'err.catalog.chunkTooLarge':
-        'Liste de lecture "{playlist}" : éléments reçus : {count} au lieu de {expected}.',
-    'err.catalog.columnsMismatch':
-        'Liste de lecture "{playlist}" : le serveur a renvoyé {count} colonnes au lieu de {expected}.',
 
     /*
      * --------------------------------------------------------
-     * Erreurs de la liste de lecture "beefweb"
+     * Erreurs de la liste de lecture MPD
      * --------------------------------------------------------
      */
     'err.playlist.tracksUnavailable':
         "Échec de la récupération des pistes de l'album actuel.",
-    'err.playlist.beefwebMissing':
-        'La liste de lecture "beefweb" est introuvable.',
-    'err.playlist.createFailed':
-        'Échec de la création de la liste de lecture "beefweb".{details}',
-    'err.playlist.createFailedHttp':
-        'Échec de la création de la liste de lecture "beefweb". ' +
-        'HTTP {status}.{details}',
     'err.playlist.clearFailed':
-        'Échec de la suppression du contenu de la liste de lecture "beefweb".{details}',
-    'err.playlist.clearFailedHttp':
-        'Échec de la suppression du contenu de la liste de lecture "beefweb". ' +
-        'HTTP {status}.{details}',
+        'Échec de la suppression du contenu de la liste de lecture MPD.{details}',
     'err.playlist.addItemsFailed':
         "Échec de l'ajout des morceaux à la liste de lecture.{details}",
-    'err.playlist.addItemsFailedHttp':
-        "Échec de l'ajout des morceaux à la liste de lecture. " +
-        'HTTP {status}.{details}',
 
     'err.playlist.itemsFailed':
         'Échec de la lecture des morceaux de la liste de lecture.{details}',
-    'err.playlist.itemsFailedHttp':
-        'Échec de la lecture des morceaux de la liste de lecture. ' +
-        'HTTP {status}.{details}',
     'err.playlist.emptyPlaylist': 'La liste de lecture est vide.',
     'err.playlist.selectFailed':
         'Échec de la sélection de la liste de lecture.{details}',
 
     /*
      * --------------------------------------------------------
-     * Erreurs du lecteur Beefweb
+     * Erreurs du lecteur MPD
      * --------------------------------------------------------
      */
     'err.player.stateFailed':
-        "Échec de la récupération de l'état du lecteur Beefweb.{details}",
-    'err.player.unknownState': 'Beefweb a renvoyé un état de lecteur inconnu.',
+        "Échec de la récupération de l'état du lecteur MPD.{details}",
+    'err.player.unknownState': 'MPD a renvoyé un état de lecteur inconnu.',
     'err.volume.notFinite': 'Le volume doit être un nombre fini.',
     'err.volume.setFailed': 'Échec de la modification du volume.{details}',
     'err.volume.rangeUnknown': 'Impossible de déterminer la plage de volume.',
@@ -238,7 +202,7 @@ export const fr: TranslationDictionary = {
     'err.playback.changeFailed':
         "Échec de la modification de l'état de lecture.",
     'err.track.switchFailed': 'Échec du changement de morceau.',
-    'err.album.loadFailed': "Échec du chargement de l'album dans Foobar2000.",
+    'err.album.loadFailed': "Échec du chargement de l'album dans MPD.",
 
     /*
      * --------------------------------------------------------
@@ -247,12 +211,8 @@ export const fr: TranslationDictionary = {
      */
     'err.library.importFailed':
         "Échec de l'importation de la bibliothèque multimédia.",
-    'err.artwork.catalogMismatch':
-        'Impossible de faire correspondre les albums avec la liste de lecture "beefweb-catalog". ' +
-        "Mettez à jour la liste de lecture dans foobar2000 et redémarrez l'application.",
-    'err.artwork.fetchFailedHttp':
-        "Échec de la récupération de la pochette de l'album. HTTP {status}.",
-    'err.artwork.emptyResponse': 'Réponse de pochette vide.',
+    'err.artwork.fetchFailed':
+        "Échec de la récupération de la pochette de l'album.{details}",
     'err.artwork.base64Unavailable':
         "L'encodage Base64 n'est pas disponible dans cet environnement.",
 } as const;

@@ -3,8 +3,6 @@ import { Library, PlaylistTrackInfo } from '../src/library/types';
 
 import { playbackController } from '../src/services/playbackController';
 
-import { resolveBeefwebUrl } from '../src/services/beefwebUrl';
-
 import {
     getPlayerSnapshot,
     pausePlayer,
@@ -13,22 +11,22 @@ import {
     stopPlayer,
     percentageToVolume,
     volumeToPercentage,
-} from '../src/services/beefwebPlayerService';
+} from '../src/services/mpd/mpdPlayerService';
 
 import {
-    loadCurrentAlbumToBeefwebPlaylist,
-    loadTrackPathsToBeefwebPlaylist,
-} from '../src/services/beefwebPlaylistService';
+    loadCurrentAlbumToMpdPlaylist,
+    loadTrackPathsToMpdPlaylist,
+} from '../src/services/mpd/mpdPlaylistService';
 
 import { readPlaylistTrackInfo } from '../src/services/tracklistService';
 
+import { resolveMpdConfig } from '../src/services/mpd/mpdClient';
+
+import { MpdIdleClient } from '../src/services/mpd/mpdIdleClient';
+
 import { saveCurrentPlayback } from '../src/services/playbackService';
 
-jest.mock('../src/services/beefwebUrl', () => ({
-    resolveBeefwebUrl: jest.fn(),
-}));
-
-jest.mock('../src/services/beefwebPlayerService', () => ({
+jest.mock('../src/services/mpd/mpdPlayerService', () => ({
     getPlayerSnapshot: jest.fn(),
     playCurrentTrack: jest.fn(),
     pausePlayer: jest.fn(),
@@ -40,11 +38,9 @@ jest.mock('../src/services/beefwebPlayerService', () => ({
     percentageToVolume: jest.fn(),
 }));
 
-jest.mock('../src/services/beefwebPlaylistService', () => ({
-    BEEFWEB_PLAYLIST_NAME: 'beefweb',
-    findBeefwebPlaylistId: jest.fn(),
-    loadCurrentAlbumToBeefwebPlaylist: jest.fn(),
-    loadTrackPathsToBeefwebPlaylist: jest.fn(),
+jest.mock('../src/services/mpd/mpdPlaylistService', () => ({
+    loadCurrentAlbumToMpdPlaylist: jest.fn(),
+    loadTrackPathsToMpdPlaylist: jest.fn(),
 }));
 
 jest.mock('../src/services/tracklistService', () => ({
@@ -56,12 +52,32 @@ jest.mock('../src/services/playbackService', () => ({
     saveCurrentPlayback: jest.fn(),
 }));
 
+jest.mock('../src/services/mpd/mpdClient', () => ({
+    resolveMpdConfig: jest.fn(),
+}));
+
+/*
+ * Idle-подписка заменяется заглушкой: события тестируются
+ * вызовом обработчиков, переданных в start().
+ *
+ * Методы крепятся к this, а не возвращаются как литерал:
+ * иначе реальный экземпляр контроллера не попадает в
+ * mock.instances, и тест не может добраться до его методов.
+ */
+jest.mock('../src/services/mpd/mpdIdleClient', () => ({
+    MpdIdleClient: jest.fn(function (this: Record<string, jest.Mock>) {
+        this.start = jest.fn();
+
+        this.stop = jest.fn();
+
+        this.waitStopped = jest.fn();
+    }),
+}));
+
 /*
  * Реальный playbackSyncService работает с libraryStore,
  * поэтому он не мокается — тесты проверяют интеграцию.
  */
-
-const beefwebUrl = 'http://192.168.1.100:8880';
 
 const ALBUM_ONE = 'Artist One|Album One';
 const ALBUM_TWO = 'Artist Two|Album Two';
@@ -166,23 +182,51 @@ function flush(): Promise<void> {
 }
 
 describe('playbackController', () => {
-    const resolveUrlMock = resolveBeefwebUrl as jest.Mock;
+    /*
+     * Освобожденные подписки накапливаются здесь: упавший тест
+     * не должен оставлять активный тикер контроллера следующим.
+     */
+    const releases: Array<() => void> = [];
+
+    afterEach(() => {
+        while (releases.length > 0) {
+            releases.pop()!();
+        }
+    });
+
     const getSnapshotMock = getPlayerSnapshot as jest.Mock;
     const pauseMock = pausePlayer as jest.Mock;
     const playMock = playCurrentTrack as jest.Mock;
     const stopMock = stopPlayer as jest.Mock;
     const setPositionMock = setPlayerPosition as jest.Mock;
-    const loadPlaylistMock = loadCurrentAlbumToBeefwebPlaylist as jest.Mock;
-    const loadTrackPathsMock = loadTrackPathsToBeefwebPlaylist as jest.Mock;
+    const loadPlaylistMock = loadCurrentAlbumToMpdPlaylist as jest.Mock;
+    const loadTrackPathsMock = loadTrackPathsToMpdPlaylist as jest.Mock;
     const readTrackInfoMock = readPlaylistTrackInfo as jest.Mock;
     const saveMock = saveCurrentPlayback as jest.Mock;
     const volumeToPercentageMock = volumeToPercentage as jest.Mock;
     const percentageToVolumeMock = percentageToVolume as jest.Mock;
+    const resolveConfigMock = resolveMpdConfig as jest.Mock;
+    const idleClientMock = MpdIdleClient as jest.Mock;
+
+    /*
+     * Контроллер создает единственный MpdIdleClient при импорте,
+     * поэтому методы захватываются у первого экземпляра мока
+     * один раз: jest.clearAllMocks() стирает mock.instances.
+     */
+    const idleInstance = idleClientMock.mock.instances[0];
+
+    const idleStart = idleInstance.start;
+
+    const idleStop = idleInstance.stop;
 
     beforeEach(() => {
         jest.clearAllMocks();
 
-        resolveUrlMock.mockResolvedValue(beefwebUrl);
+        resolveConfigMock.mockResolvedValue({
+            host: 'moode.local',
+            port: 6600,
+        });
+
         saveMock.mockResolvedValue(undefined);
         loadTrackPathsMock.mockResolvedValue(undefined);
         volumeToPercentageMock.mockReturnValue(40);
@@ -211,6 +255,8 @@ describe('playbackController', () => {
 
         const release = playbackController.acquirePolling();
 
+        releases.push(release);
+
         await flush();
 
         expect(playbackController.getPlaybackState()).toBe('playing');
@@ -221,12 +267,146 @@ describe('playbackController', () => {
         release();
     });
 
+    test('starts the idle subscription and refreshes on idle events', async () => {
+        libraryStore.setCurrentPlayback({
+            playbackSource: 'album',
+            currentAlbumId: ALBUM_ONE,
+            currentTrackId: 't1',
+            currentTime: 0,
+            currentPlaylistId: null,
+            currentPlaylistTrackId: null,
+            currentPlaylistTrackTime: 0,
+        });
+
+        getSnapshotMock.mockResolvedValue({
+            playbackState: 'playing',
+            activeItem: { index: 0, position: 5 },
+            volume: linearVolume,
+        });
+
+        const release = playbackController.acquirePolling();
+
+        releases.push(release);
+
+        await flush();
+
+        expect(resolveConfigMock).toHaveBeenCalled();
+
+        expect(idleStart).toHaveBeenCalledTimes(1);
+
+        const [, subsystems, onEvent] = idleStart.mock.calls[0];
+
+        expect(subsystems).toContain('player');
+
+        /*
+         * Событие idle запускает внеочередную синхронизацию
+         * снимка с сервером.
+         */
+        getSnapshotMock.mockResolvedValue({
+            playbackState: 'playing',
+            activeItem: { index: 0, position: 42 },
+            volume: linearVolume,
+        });
+
+        onEvent(['player']);
+
+        await flush();
+
+        expect(libraryStore.getCurrentPlayback()?.currentTime).toBe(42);
+
+        release();
+
+        expect(idleStop).toHaveBeenCalled();
+    });
+
+    test('retries the idle subscription when settings are unavailable', async () => {
+        console.error = jest.fn();
+
+        resolveConfigMock.mockRejectedValueOnce(new Error('no settings'));
+
+        const release = playbackController.acquirePolling();
+
+        releases.push(release);
+
+        await flush();
+
+        expect(idleStart).not.toHaveBeenCalled();
+
+        expect(playbackController.getError()?.params?.details).toContain(
+            'no settings',
+        );
+
+        release();
+    });
+
+    test('advances the local position while playing between events', async () => {
+        libraryStore.setCurrentPlayback({
+            playbackSource: 'album',
+            currentAlbumId: ALBUM_ONE,
+            currentTrackId: 't1',
+            currentTime: 0,
+            currentPlaylistId: null,
+            currentPlaylistTrackId: null,
+            currentPlaylistTrackTime: 0,
+        });
+
+        getSnapshotMock.mockResolvedValue({
+            playbackState: 'playing',
+            activeItem: { index: 0, position: 10 },
+            volume: linearVolume,
+        });
+
+        const release = playbackController.acquirePolling();
+
+        releases.push(release);
+
+        await flush();
+
+        expect(libraryStore.getCurrentPlayback()?.currentTime).toBe(10);
+
+        /*
+         * Тик таймера вызывается напрямую: локальное продвижение
+         * позиции не зависит от реального интервала в тесте.
+         */
+        (playbackController as unknown as { tick(): void }).tick();
+
+        expect(libraryStore.getCurrentPlayback()?.currentTime).toBe(11);
+
+        /* На паузе позиция не двигается. */
+        getSnapshotMock.mockResolvedValue({
+            playbackState: 'paused',
+            activeItem: { index: 0, position: 11 },
+            volume: linearVolume,
+        });
+
+        /*
+         * Синхронизация запускается idle-событием; двойной flush
+         * нужен, потому что цепочка промисов refreshSnapshot
+         * длиннее одного витка event loop.
+         */
+        const [, , onEvent] =
+            idleStart.mock.calls[idleStart.mock.calls.length - 1];
+
+        onEvent(['player']);
+
+        await flush();
+        await flush();
+
+        (playbackController as unknown as { tick(): void }).tick();
+
+        expect(libraryStore.getCurrentPlayback()?.currentTime).toBe(11);
+
+        release();
+    });
+
     test('reports errors from the poll without throwing', async () => {
         console.error = jest.fn();
 
         getSnapshotMock.mockRejectedValue(new Error('HTTP 500.'));
 
         const release = playbackController.acquirePolling();
+
+        releases.push(release);
 
         await flush();
 
@@ -261,6 +441,8 @@ describe('playbackController', () => {
 
         const release = playbackController.acquirePolling();
 
+        releases.push(release);
+
         await flush();
 
         getSnapshotMock.mockResolvedValue({
@@ -270,7 +452,7 @@ describe('playbackController', () => {
 
         await playbackController.playPause();
 
-        expect(pauseMock).toHaveBeenCalledWith(beefwebUrl);
+        expect(pauseMock).toHaveBeenCalledWith();
         expect(playbackController.getPlaybackState()).toBe('paused');
 
         release();
@@ -293,7 +475,7 @@ describe('playbackController', () => {
 
         await playbackController.selectTrack('next');
 
-        expect(playMock).toHaveBeenCalledWith(beefwebUrl, 1);
+        expect(playMock).toHaveBeenCalledWith(1);
         expect(libraryStore.getCurrentPlayback()?.currentTrackId).toBe('t2');
     });
 
@@ -336,7 +518,7 @@ describe('playbackController', () => {
 
         await playbackController.selectTrack('next');
 
-        expect(playMock).toHaveBeenCalledWith(beefwebUrl, 1);
+        expect(playMock).toHaveBeenCalledWith(1);
 
         const playback = libraryStore.getCurrentPlayback();
 
@@ -367,7 +549,7 @@ describe('playbackController', () => {
 
         await playbackController.selectTrack('previous');
 
-        expect(playMock).toHaveBeenCalledWith(beefwebUrl, 0);
+        expect(playMock).toHaveBeenCalledWith(0);
 
         const playback = libraryStore.getCurrentPlayback();
 
@@ -397,7 +579,7 @@ describe('playbackController', () => {
 
         await playbackController.playPlaylistEntry(1);
 
-        expect(playMock).toHaveBeenCalledWith(beefwebUrl, 1);
+        expect(playMock).toHaveBeenCalledWith(1);
 
         const playback = libraryStore.getCurrentPlayback();
 
@@ -428,7 +610,7 @@ describe('playbackController', () => {
 
         await playbackController.playPlaylistEntry(1);
 
-        expect(playMock).toHaveBeenCalledWith(beefwebUrl, 1);
+        expect(playMock).toHaveBeenCalledWith(1);
 
         const playback = libraryStore.getCurrentPlayback();
 
@@ -503,7 +685,7 @@ describe('playbackController', () => {
 
         await playbackController.seek(120);
 
-        expect(setPositionMock).toHaveBeenCalledWith(beefwebUrl, 120);
+        expect(setPositionMock).toHaveBeenCalledWith(120);
         expect(libraryStore.getCurrentPlayback()?.currentTime).toBe(120);
     });
 
@@ -524,9 +706,9 @@ describe('playbackController', () => {
 
         await playbackController.selectAlbum(ALBUM_TWO);
 
-        expect(stopMock).toHaveBeenCalledWith(beefwebUrl);
-        expect(loadPlaylistMock).toHaveBeenCalledWith(beefwebUrl);
-        expect(playMock).toHaveBeenCalledWith(beefwebUrl, 0);
+        expect(stopMock).toHaveBeenCalledWith();
+        expect(loadPlaylistMock).toHaveBeenCalledWith();
+        expect(playMock).toHaveBeenCalledWith(0);
         expect(libraryStore.getCurrentPlayback()?.currentAlbumId).toBe(
             ALBUM_TWO,
         );
@@ -599,11 +781,11 @@ describe('playbackController', () => {
         expect(libraryStore.getCurrentPlayback()?.currentPlaylistTrackId).toBe(
             't1',
         );
-        expect(loadTrackPathsMock).toHaveBeenCalledWith(beefwebUrl, [
+        expect(loadTrackPathsMock).toHaveBeenCalledWith([
             '/a/one.flac',
             '/a/two.flac',
         ]);
-        expect(playMock).toHaveBeenCalledWith(beefwebUrl, 0);
+        expect(playMock).toHaveBeenCalledWith(0);
         expect(saveMock).toHaveBeenCalled();
     });
 

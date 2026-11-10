@@ -27,7 +27,7 @@ export const en = {
      * --------------------------------------------------------
      */
     'settings.title': 'Settings',
-    'settings.urlLabel': 'Foobar2000 URL',
+    'settings.urlLabel': 'MPD URL',
     'settings.portLabel': 'Port',
     'settings.checking': 'Checking settings...',
     'settings.loadFailed': 'Failed to load settings',
@@ -114,107 +114,73 @@ export const en = {
     'err.unknown': 'Unknown error.',
     'err.generic': '{details}',
     'err.response.invalid': 'The server returned an invalid response.',
-    'err.settings.notFound': 'Foobar2000 settings are not configured.',
+    'err.settings.notFound': 'MPD settings are not configured.',
     'err.settings.loadFailed': 'Failed to load settings.',
     'err.server.timeout':
         'The server is not responding. Check that foobar2000 is running on the computer.',
 
     /*
      * --------------------------------------------------------
-     * Ошибки URL и порта Foobar2000
+     * Ошибки URL и порта MPD
      * --------------------------------------------------------
      */
-    'err.url.empty': 'Foobar2000 URL is not specified.',
-    'err.url.invalid': 'Invalid Foobar2000 URL.',
-    'err.url.protocol': 'Foobar2000 URL must use HTTP or HTTPS.',
-    'err.port.notNumber': 'Foobar2000 port must be a number.',
-    'err.port.outOfRange': 'Foobar2000 port must be between 1 and 65535.',
+    'err.url.empty': 'MPD URL is not specified.',
+    'err.url.invalid': 'Invalid MPD URL.',
+    'err.url.protocol': 'MPD URL must use HTTP or HTTPS.',
+    'err.port.notNumber': 'MPD port must be a number.',
+    'err.port.outOfRange': 'MPD port must be between 1 and 65535.',
 
     /*
      * --------------------------------------------------------
      * Ошибки проверки настроек
      * --------------------------------------------------------
      */
-    'err.validation.noUrl': 'Foobar2000 URL is not specified',
-    'err.validation.noConnection': 'No connection to Foobar2000.{details}',
-    'err.validation.noConnectionHttp':
-        'No connection to Foobar2000 (HTTP {status})',
+    'err.validation.noUrl': 'MPD URL is not specified',
+    'err.validation.noConnection': 'No connection to MPD.{details}',
 
     /*
      * --------------------------------------------------------
-     * Ошибки списка плейлистов Beefweb
+     * Ошибки списка плейлистов MPD
      * --------------------------------------------------------
      */
-    'err.playlists.listFailed':
-        'Failed to get the Beefweb playlist list.{details}',
-    'err.playlists.listFailedHttp':
-        'Failed to get the Beefweb playlist list. HTTP {status}.{details}',
+    'err.playlists.listFailed': 'Failed to get the MPD playlist list.{details}',
 
     /*
      * --------------------------------------------------------
-     * Ошибки плейлиста-каталога "beefweb-catalog"
+     * Ошибки плейлиста-каталога "медиатека MPD"
      * --------------------------------------------------------
      */
     'err.catalog.readFailed':
         'Failed to read items of playlist "{playlist}".{details}',
-    'err.catalog.readFailedHttp':
-        'Failed to read items of playlist "{playlist}". ' +
-        'HTTP {status}.{details}',
-    'err.catalog.missing':
-        'Playlist "{playlist}" was not found. In foobar2000 open ' +
-        'Media Library, select all albums and send them to a new ' +
-        'playlist named "{playlist}".',
     'err.catalog.empty':
         'Playlist "{playlist}" is empty. Send your entire media ' +
         'library from foobar2000 to it.',
     'err.catalog.tooLarge':
         'Playlist "{playlist}" contains {total} items, which ' +
         'exceeds the limit of {limit}.',
-    'err.catalog.rowsMismatch':
-        'Playlist "{playlist}": rows read: {count} of {total}.',
-    'err.catalog.invalidResponse':
-        'Playlist "{playlist}": the server returned an invalid response.',
-    'err.catalog.chunkTooLarge':
-        'Playlist "{playlist}": items received: {count} instead of {expected}.',
-    'err.catalog.columnsMismatch':
-        'Playlist "{playlist}": server returned {count} columns ' +
-        'instead of {expected}.',
 
     /*
      * --------------------------------------------------------
-     * Ошибки рабочего плейлиста "beefweb"
+     * Ошибки рабочего очереди MPD
      * --------------------------------------------------------
      */
     'err.playlist.tracksUnavailable':
         'Failed to get the tracks of the current album.',
-    'err.playlist.beefwebMissing': 'Playlist "beefweb" was not found.',
-    'err.playlist.createFailed':
-        'Failed to create playlist "beefweb".{details}',
-    'err.playlist.createFailedHttp':
-        'Failed to create playlist "beefweb". HTTP {status}.{details}',
-    'err.playlist.clearFailed': 'Failed to clear playlist "beefweb".{details}',
-    'err.playlist.clearFailedHttp':
-        'Failed to clear playlist "beefweb". HTTP {status}.{details}',
+    'err.playlist.clearFailed': 'Failed to clear MPD queue.{details}',
     'err.playlist.addItemsFailed':
-        'Failed to add tracks to playlist "beefweb".{details}',
-    'err.playlist.addItemsFailedHttp':
-        'Failed to add tracks to playlist "beefweb". ' +
-        'HTTP {status}.{details}',
+        'Failed to add tracks to MPD queue.{details}',
 
     'err.playlist.itemsFailed': 'Failed to read playlist tracks.{details}',
-    'err.playlist.itemsFailedHttp':
-        'Failed to read playlist tracks. HTTP {status}.{details}',
     'err.playlist.emptyPlaylist': 'The playlist is empty.',
     'err.playlist.selectFailed': 'Failed to select the playlist.{details}',
 
     /*
      * --------------------------------------------------------
-     * Ошибки плеера Beefweb
+     * Ошибки плеера MPD
      * --------------------------------------------------------
      */
-    'err.player.stateFailed':
-        'Failed to get the Beefweb player state.{details}',
-    'err.player.unknownState': 'Beefweb returned an unknown player state.',
+    'err.player.stateFailed': 'Failed to get the MPD player state.{details}',
+    'err.player.unknownState': 'MPD returned an unknown player state.',
     'err.volume.notFinite': 'Volume must be a finite number.',
     'err.volume.setFailed': 'Failed to change the volume.{details}',
     'err.volume.rangeUnknown': 'Failed to determine the volume range.',
@@ -234,7 +200,7 @@ export const en = {
      */
     'err.playback.changeFailed': 'Failed to change the playback state.',
     'err.track.switchFailed': 'Failed to switch the track.',
-    'err.album.loadFailed': 'Failed to load the album into Foobar2000.',
+    'err.album.loadFailed': 'Failed to load the album into MPD.',
 
     /*
      * --------------------------------------------------------
@@ -242,12 +208,7 @@ export const en = {
      * --------------------------------------------------------
      */
     'err.library.importFailed': 'Failed to import the media library.',
-    'err.artwork.catalogMismatch':
-        'Failed to match albums with playlist "beefweb-catalog". ' +
-        'Update the playlist in foobar2000 and restart the application.',
-    'err.artwork.fetchFailedHttp':
-        'Failed to fetch the album artwork. HTTP {status}.',
-    'err.artwork.emptyResponse': 'Empty artwork response.',
+    'err.artwork.fetchFailed': 'Failed to fetch the album artwork.{details}',
     'err.artwork.base64Unavailable':
         'Base64 encoding is unavailable in this environment.',
 } as const;

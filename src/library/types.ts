@@ -156,16 +156,16 @@ export type PlaybackSource = 'album' | 'playlist';
  * @description
  * Одна строка активного плейлиста.
  *
- * path — путь трека в плейлисте Beefweb;
+ * path — путь трека в медиатеке MPD;
  * trackId — ID трека в Library, если трек найден по пути,
  * иначе null (плейлист может содержать треки вне медиатеки).
  */
 /**
  * @name PlaylistTrackInfo
  * @description
- * Строка плейлиста Beefweb вместе с метаданными.
+ * Запись плейлиста (трека MPD) вместе с метаданными.
  *
- * path — путь трека в плейлисте Beefweb;
+ * path — путь трека в медиатеке MPD;
  * title / artist / album — метаданные строки, прочитанные
  * из плейлиста; null, если тег отсутствует.
  *
@@ -186,7 +186,7 @@ export interface PlaylistTrackInfo {
  * @description
  * Одна строка активного плейлиста.
  *
- * path — путь трека в плейлисте Beefweb;
+ * path — путь трека в медиатеке MPD;
  * trackId — ID трека в Library, если трек найден по пути,
  * иначе null (плейлист может содержать треки вне медиатеки);
  * title / artist / album / durationSeconds — метаданные строки

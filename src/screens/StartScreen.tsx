@@ -7,10 +7,9 @@
  *
  * 1. Загрузка сохранённых настроек.
  * 2. Проверка настроек.
- * 3. Загрузка Library из плейлиста "beefweb-catalog"
+ * 3. Загрузка Library из медиатеки MPD
  *    + восстановление CurrentPlayback.
- * 4. Загрузка текущего альбома в playlist.
- *    Пока используется заглушка.
+ * 4. Загрузка текущего альбома в очередь MPD.
  * 5. Открытие AlbumsScreen.
  *
  * Если настройки отсутствуют или некорректны,
@@ -49,12 +48,11 @@ import { libraryStore } from '../library/LibraryStore';
 import { readPlaylistTrackInfo } from '../services/tracklistService';
 
 import {
-    loadCurrentAlbumToBeefwebPlaylist,
-    loadTrackPathsToBeefwebPlaylist,
-    playlistExists,
-} from '../services/beefwebPlaylistService';
+    loadCurrentAlbumToMpdPlaylist,
+    loadTrackPathsToMpdPlaylist,
+} from '../services/mpd/mpdPlaylistService';
 
-import { stopPlayer } from '../services/beefwebPlayerService';
+import { stopPlayer } from '../services/mpd/mpdPlayerService';
 
 import { createDefaultPlayback } from '../services/playbackInitializer';
 
@@ -67,8 +65,6 @@ import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 
 import { useTheme, useResolvedTheme } from '../theme/useTheme';
-
-import { buildBeefwebUrl } from '../services/beefwebUrl';
 
 import { describeError, Translation, useTranslation } from '../i18n';
 
@@ -84,24 +80,22 @@ type StartStatus = 'checkingSettings' | 'loadingLibrary' | 'loadingPlaylist';
  * первый альбом библиотеки, первый трек, остановлено.
  *
  * Выполняется, когда сохранённый плейлист недоступен
- * (например, удалён на сервере в foobar2000) и его
+ * (например, удалён на сервере) и его
  * строки невозможно восстановить.
- *
- * @param beefwebUrl Базовый URL Beefweb без завершающего "/".
  */
-async function resetToDefaultPlayback(beefwebUrl: string): Promise<void> {
+async function resetToDefaultPlayback(): Promise<void> {
     const playback = createDefaultPlayback(libraryStore.getLibrary());
 
     /*
      * Состояние заменяется до обращения к серверу:
-     * loadCurrentAlbumToBeefwebPlaylist() читает пути
+     * loadCurrentAlbumToMpdPlaylist() читает пути
      * треков нового текущего альбома из LibraryStore.
      */
     libraryStore.setCurrentPlayback(playback);
 
-    await stopPlayer(beefwebUrl);
+    await stopPlayer();
 
-    await loadCurrentAlbumToBeefwebPlaylist(beefwebUrl);
+    await loadCurrentAlbumToMpdPlaylist();
 
     await saveCurrentPlayback(playback);
 
@@ -212,7 +206,7 @@ export default function StartScreen({ navigation }: Props) {
                      *
                      * loadLibrary():
                      *
-                     * - читает плейлист "beefweb-catalog";
+                     * - читает медиатеку MPD;
                      * - импортирует Library;
                      * - устанавливает Library в LibraryStore;
                      * - восстанавливает CurrentPlayback;
@@ -222,12 +216,7 @@ export default function StartScreen({ navigation }: Props) {
 
                     setStatus('loadingLibrary');
 
-                    const beefwebUrl = buildBeefwebUrl(
-                        settings.foobarUrl,
-                        settings.foobarPort,
-                    );
-
-                    await loadLibrary(beefwebUrl);
+                    await loadLibrary();
 
                     if (cancelled) {
                         return;
@@ -238,20 +227,15 @@ export default function StartScreen({ navigation }: Props) {
                      * 4. Загрузка playlist
                      * ==================================================
                      *
-                     * Пока используется заглушка.
-                     *
-                     * Загрузка:
-                     *
-                     * libraryStore.getCurrentAlbumTrackPaths()
-                     *
-                     * в Beefweb playlist.
+                     * Загрузка текущего источника
+                     * в очередь MPD.
                      */
 
                     setStatus('loadingPlaylist');
 
                     /*
                      * Активный источник определяет, какие треки
-                     * попадают в playlist "beefweb" при запуске:
+                     * попадают в очередь MPD при запуске:
                      * треки текущего альбома или треки выбранного
                      * плейлиста.
                      */
@@ -270,32 +254,27 @@ export default function StartScreen({ navigation }: Props) {
 
                         if (playlistId !== null && playlistId !== undefined) {
                             try {
-                                if (
-                                    await playlistExists(beefwebUrl, playlistId)
-                                ) {
-                                    const items = await readPlaylistTrackInfo(
-                                        playlistId,
-                                    );
+                                const items = await readPlaylistTrackInfo(
+                                    playlistId,
+                                );
 
-                                    /*
-                                     * Восстанавливаем строки плейлиста
-                                     * в LibraryStore: без них индекс
-                                     * текущего трека не определён и
-                                     * управление воспроизведением
-                                     * невозможно.
-                                     */
-                                    libraryStore.restorePlaylistEntries(
-                                        playlistId,
-                                        items,
-                                    );
+                                /*
+                                 * Восстанавливаем строки плейлиста
+                                 * в LibraryStore: без них индекс
+                                 * текущего трека не определён и
+                                 * управление воспроизведением
+                                 * невозможно.
+                                 */
+                                libraryStore.restorePlaylistEntries(
+                                    playlistId,
+                                    items,
+                                );
 
-                                    await loadTrackPathsToBeefwebPlaylist(
-                                        beefwebUrl,
-                                        items.map(item => item.path),
-                                    );
+                                await loadTrackPathsToMpdPlaylist(
+                                    items.map(item => item.path),
+                                );
 
-                                    playlistRestored = true;
-                                }
+                                playlistRestored = true;
                             } catch (error) {
                                 console.error(
                                     'Saved playlist is unavailable, falling back to the first album:',
@@ -305,10 +284,10 @@ export default function StartScreen({ navigation }: Props) {
                         }
 
                         if (!playlistRestored) {
-                            await resetToDefaultPlayback(beefwebUrl);
+                            await resetToDefaultPlayback();
                         }
                     } else {
-                        await loadCurrentAlbumToBeefwebPlaylist(beefwebUrl);
+                        await loadCurrentAlbumToMpdPlaylist();
                     }
 
                     if (cancelled) {

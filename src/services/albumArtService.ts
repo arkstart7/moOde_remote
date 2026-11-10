@@ -4,23 +4,13 @@
  * @description
  * Единая точка загрузки обложек альбомов.
  *
- * Обложки берутся с сервера Beefweb через artwork API:
+ * Обложки берутся напрямую из MPD:
  *
- *     GET /api/artwork/{playlistId}/{itemIndex}
+ *     albumart <uri>       — файл-обложка рядом с треком;
+ *     readpicture <uri> 0  — встроенная обложка аудиофайла.
  *
- * В качестве плейлиста используется общий каталог
- * "beefweb-catalog", содержащий все треки библиотеки
- * (см. beefwebCatalogService). Соответствие
- * "альбом → индекс элемента" строится по путям строк каталога:
- * представителем альбома является его первый трек, путь которого
- * ищется среди прочитанных путей. Оба значения берутся из одного
- * источника (%path% плейлиста), поэтому совпадают буквально,
- * без нормализации строк.
- *
- * Каталог только читается и не принадлежит ни одному устройству,
- * поэтому несколько клиентов, разделяющих один сервер, не
- * конкурируют за него; отдельные служебные плейлисты обложек
- * больше не нужны.
+ * Представителем альбома является его первый трек: путь трека
+ * берется из LibraryStore, и по нему запрашивается обложка.
  *
  * Загруженные байты сохраняются в кэш-каталог приложения
  * (CachesDirectoryPath/album-art) под именем {artist}_{title}.jpg,
@@ -49,13 +39,7 @@ import {
 
 import { libraryStore } from '../library/LibraryStore';
 
-import { fetchBeefwebArtworkBase64 } from './beefwebArtworkService';
-
-import { readBeefwebCatalogPaths } from './beefwebCatalogService';
-
-import { resolveBeefwebUrl } from './beefwebUrl';
-
-import { LocalizedError } from '../i18n';
+import { bytesToBase64, fetchMpdArtwork } from './mpd/mpdArtworkService';
 
 /** Каталог файлового кэша обложек внутри приложения. */
 const CACHE_DIR = `${CachesDirectoryPath}/album-art-v3`;
@@ -73,13 +57,11 @@ const LEGACY_CACHE_DIRS = [
 const LOAD_CONCURRENCY = 4;
 
 /**
- * Контекст загрузки обложек: URL сервера, служебный playlist
- * и индекс элемента для каждого альбома.
+ * Контекст загрузки обложек: путь трека-представителя
+ * для каждого альбома.
  */
 interface ArtworkContext {
-    beefwebUrl: string;
-    playlistId: string | number;
-    itemIndexByAlbumId: Map<string, number>;
+    pathByAlbumId: Map<string, string>;
 }
 
 export class AlbumArtService {
@@ -87,6 +69,14 @@ export class AlbumArtService {
      * Кэш путей к обложкам: ID альбома → file:// URI.
      */
     private cache = new Map<string, string>();
+
+    /**
+     * Альбомы, для которых загрузка не удалась в этой сессии
+     * (например, MPD закрывает соединение на данном файле):
+     * прогрев их не повторяет, но точечный getAlbumImage,
+     * вызванный из UI, попытку все же делает.
+     */
+    private failedAlbums = new Set<string>();
 
     /**
      * Признак того, что каталог кэша уже создан:
@@ -165,7 +155,9 @@ export class AlbumArtService {
         albumIds: string[],
         onImage?: (albumId: string, imageUri: string) => void,
     ): Promise<void> {
-        const pendingIds = albumIds.filter(id => !this.cache.has(id));
+        const pendingIds = albumIds.filter(
+            id => !this.cache.has(id) && !this.failedAlbums.has(id),
+        );
 
         if (pendingIds.length === 0) {
             return;
@@ -195,11 +187,38 @@ export class AlbumArtService {
                         onImage?.(albumId, imageUri);
                     }
                 } catch (error) {
-                    console.error(
-                        'Failed to read album image:',
-                        albumId,
-                        error,
-                    );
+                    /*
+                     * MPD может закрыть соединение посреди прогрева
+                     * (рестарт сервиса, таймаут, лимит подключений).
+                     * Следующая команда откроет соединение заново,
+                     * поэтому одну повторную попытку делаем здесь;
+                     * диагностический лог оставляем только для
+                     * повторного провала.
+                     */
+                    try {
+                        const retryUri = await this.loadImage(context, albumId);
+
+                        if (retryUri) {
+                            onImage?.(albumId, retryUri);
+                        }
+                    } catch (retryError) {
+                        /*
+                         * Неустранимая для этого альбома ситуация:
+                         * MPD стабильно закрывает соединение на данном
+                         * файле. Запоминаем альбом, чтобы не повторять
+                         * заведомо провальные запросы на каждом прогреве,
+                         * и diagnostics на уровне warn, а не error,
+                         * чтобы не поднимать LogBox.
+                         */
+                        this.failedAlbums.add(albumId);
+
+                        console.warn(
+                            'Failed to read album image:',
+                            albumId,
+                            error,
+                            retryError,
+                        );
+                    }
                 }
             }
         };
@@ -240,24 +259,24 @@ export class AlbumArtService {
         if (diskUri) {
             this.cache.set(albumId, diskUri);
 
+            this.failedAlbums.delete(albumId);
+
             return diskUri;
         }
 
-        const itemIndex = context.itemIndexByAlbumId.get(album.id);
+        const trackPath = context.pathByAlbumId.get(album.id);
 
-        if (itemIndex === undefined) {
+        if (!trackPath) {
             return null;
         }
 
-        const base64 = await fetchBeefwebArtworkBase64(
-            context.beefwebUrl,
-            context.playlistId,
-            itemIndex,
-        );
+        const bytes = await fetchMpdArtwork(trackPath);
 
-        if (!base64) {
+        if (!bytes || bytes.length === 0) {
             return null;
         }
+
+        const base64 = bytesToBase64(bytes);
 
         const imageUri = await this.writeCachedImage(fileName, base64);
 
@@ -357,25 +376,11 @@ export class AlbumArtService {
 /**
  * Строит контекст загрузки обложек.
  *
- * Позиции элементов берутся из фактического содержимого каталога:
- * путь первого трека каждого альбома ищется среди путей строк
- * плейлиса "beefweb-catalog". При дублях пути используется первое
- * вхождение.
+ * Представителем альбома является его первый трек: путь трека
+ * уже хранится в Library, отдельное чтение каталога не нужно.
  */
 async function buildArtworkContext(): Promise<ArtworkContext> {
-    const beefwebUrl = await resolveBeefwebUrl();
-
-    const { playlistId, paths } = await readBeefwebCatalogPaths(beefwebUrl);
-
-    const itemIndexByPath = new Map<string, number>();
-
-    paths.forEach((path, index) => {
-        if (!itemIndexByPath.has(path)) {
-            itemIndexByPath.set(path, index);
-        }
-    });
-
-    const itemIndexByAlbumId = new Map<string, number>();
+    const pathByAlbumId = new Map<string, string>();
 
     for (const album of libraryStore.getAllAlbums()) {
         const firstTrackId = album.trackIds[0];
@@ -386,31 +391,12 @@ async function buildArtworkContext(): Promise<ArtworkContext> {
 
         const track = libraryStore.getTrack(firstTrackId);
 
-        if (!track?.path) {
-            continue;
-        }
-
-        const itemIndex = itemIndexByPath.get(track.path);
-
-        if (itemIndex !== undefined) {
-            itemIndexByAlbumId.set(album.id, itemIndex);
+        if (track?.path) {
+            pathByAlbumId.set(album.id, track.path);
         }
     }
 
-    /*
-     * Ни один альбом не найден в каталоге при непустой библиотеке:
-     * содержимое каталога на сервере разошлось с прочитанной
-     * Library. Молча отдавать отсутствие обложек нельзя —
-     * сообщаем о необходимости обновить каталог.
-     */
-    if (
-        itemIndexByAlbumId.size === 0 &&
-        libraryStore.getAllAlbums().length > 0
-    ) {
-        throw new LocalizedError('err.artwork.catalogMismatch');
-    }
-
-    return { beefwebUrl, playlistId, itemIndexByAlbumId };
+    return { pathByAlbumId };
 }
 
 /**

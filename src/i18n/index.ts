@@ -19,11 +19,7 @@ import { ErrorDescriptor } from './localizedError';
 
 import { TranslationKey, TranslationParams } from './translations/en';
 
-export {
-    describeError,
-    LocalizedError,
-    toHttpLocalizedError,
-} from './localizedError';
+export { describeError, LocalizedError } from './localizedError';
 
 export type { ErrorDescriptor } from './localizedError';
 

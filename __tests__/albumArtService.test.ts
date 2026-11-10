@@ -9,11 +9,7 @@ import {
 import { albumArtService } from '../src/services/albumArtService';
 import { AlbumArtService } from '../src/services/albumArtService';
 
-import { loadSettings } from '../src/services/settingsService';
-
-import { fetchBeefwebArtworkBase64 } from '../src/services/beefwebArtworkService';
-
-import { readBeefwebCatalogPaths } from '../src/services/beefwebCatalogService';
+import { fetchMpdArtwork } from '../src/services/mpd/mpdArtworkService';
 
 import { libraryStore } from '../src/library/LibraryStore';
 import { Library } from '../src/library/types';
@@ -26,16 +22,9 @@ jest.mock('react-native-fs', () => ({
     writeFile: jest.fn(),
 }));
 
-jest.mock('../src/services/settingsService', () => ({
-    loadSettings: jest.fn(),
-}));
-
-jest.mock('../src/services/beefwebArtworkService', () => ({
-    fetchBeefwebArtworkBase64: jest.fn(),
-}));
-
-jest.mock('../src/services/beefwebCatalogService', () => ({
-    readBeefwebCatalogPaths: jest.fn(),
+jest.mock('../src/services/mpd/mpdArtworkService', () => ({
+    fetchMpdArtwork: jest.fn(),
+    bytesToBase64: jest.fn(() => 'QUJD'),
 }));
 
 const ALBUM_ID = 'Artist One|Album One';
@@ -52,8 +41,6 @@ const LEGACY_CACHE_DIRS = [
 ];
 
 const CACHE_URI = `file://${CACHE_PATH}`;
-
-const BEEFWEB_URL = 'http://192.168.1.100:8880';
 
 function buildLibrary(): Library {
     return {
@@ -102,54 +89,30 @@ function buildLibrary(): Library {
     };
 }
 
-function mockServerCover(base64: string | null): void {
-    /*
-     * Путь первого трека альбома ищется среди путей каталога —
-     * как это делает реальный сервис.
-     */
-    (readBeefwebCatalogPaths as jest.Mock).mockResolvedValue({
-        playlistId: 'pl-art',
-        paths: [TRACK_PATH],
-    });
-
-    (fetchBeefwebArtworkBase64 as jest.Mock).mockResolvedValue(base64);
+function mockServerCover(bytes: Uint8Array | null): void {
+    (fetchMpdArtwork as jest.Mock).mockResolvedValue(bytes);
 }
 
+beforeEach(() => {
+    jest.clearAllMocks();
+
+    libraryStore.setLibrary(buildLibrary());
+
+    (exists as jest.Mock).mockResolvedValue(false);
+    (mkdir as jest.Mock).mockResolvedValue(undefined);
+    (unlink as jest.Mock).mockResolvedValue(undefined);
+    (writeFile as jest.Mock).mockResolvedValue(undefined);
+});
+
 describe('albumArtService', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-
-        (loadSettings as jest.Mock).mockResolvedValue({
-            foobarUrl: '192.168.1.100',
-            foobarPort: '8880',
-        });
-
-        (exists as jest.Mock).mockResolvedValue(false);
-
-        (mkdir as jest.Mock).mockResolvedValue(undefined);
-
-        (unlink as jest.Mock).mockResolvedValue(undefined);
-
-        (writeFile as jest.Mock).mockResolvedValue(undefined);
-
-        libraryStore.clear();
-        libraryStore.setLibrary(buildLibrary());
-    });
-
-    test('loads an image from Beefweb into the native cache', async () => {
-        mockServerCover('QUJD');
+    test('loads and caches the cover of the first track of the album', async () => {
+        mockServerCover(new Uint8Array([1, 2, 3]));
 
         const first = await albumArtService.getAlbumImage(ALBUM_ID);
 
         expect(first).toBe(CACHE_URI);
 
-        expect(readBeefwebCatalogPaths).toHaveBeenCalledWith(BEEFWEB_URL);
-
-        expect(fetchBeefwebArtworkBase64).toHaveBeenCalledWith(
-            BEEFWEB_URL,
-            'pl-art',
-            0,
-        );
+        expect(fetchMpdArtwork).toHaveBeenCalledWith(TRACK_PATH);
 
         expect(writeFile).toHaveBeenCalledWith(CACHE_PATH, 'QUJD', 'base64');
 
@@ -159,7 +122,7 @@ describe('albumArtService', () => {
     });
 
     test('reuses the cached file without touching the server', async () => {
-        mockServerCover('QUJD');
+        mockServerCover(new Uint8Array([1, 2, 3]));
 
         (exists as jest.Mock).mockResolvedValue(true);
 
@@ -167,14 +130,12 @@ describe('albumArtService', () => {
 
         await expect(service.getAlbumImage(ALBUM_ID)).resolves.toBe(CACHE_URI);
 
-        expect(readBeefwebCatalogPaths).not.toHaveBeenCalled();
-
-        expect(fetchBeefwebArtworkBase64).not.toHaveBeenCalled();
+        expect(fetchMpdArtwork).not.toHaveBeenCalled();
 
         expect(writeFile).not.toHaveBeenCalled();
     });
 
-    test('returns null when Beefweb has no cover', async () => {
+    test('returns null when MPD has no cover', async () => {
         mockServerCover(null);
 
         /*
@@ -187,7 +148,7 @@ describe('albumArtService', () => {
     });
 
     test('falls back to a data URI when writing to the cache fails', async () => {
-        mockServerCover('QUJD');
+        mockServerCover(new Uint8Array([1, 2, 3]));
 
         (writeFile as jest.Mock).mockRejectedValue(new Error('disk full'));
 
@@ -213,9 +174,7 @@ describe('albumArtService', () => {
     });
 
     test('returns null when the server is unreachable', async () => {
-        mockServerCover(null);
-
-        (readBeefwebCatalogPaths as jest.Mock).mockRejectedValue(
+        (fetchMpdArtwork as jest.Mock).mockRejectedValue(
             new Error('Нет связи с сервером.'),
         );
 
@@ -257,7 +216,7 @@ describe('albumArtService', () => {
             },
         });
 
-        mockServerCover('QUJD');
+        mockServerCover(new Uint8Array([1, 2, 3]));
 
         const service = new AlbumArtService();
 
@@ -270,9 +229,11 @@ describe('albumArtService', () => {
             'base64',
         );
     });
+});
 
+describe('albumArtService legacy cache', () => {
     test('removes the poisoned legacy cache directories once', async () => {
-        mockServerCover('QUJD');
+        mockServerCover(new Uint8Array([1, 2, 3]));
 
         (exists as jest.Mock).mockImplementation(async path => {
             return LEGACY_CACHE_DIRS.includes(path as string);
@@ -299,9 +260,11 @@ describe('albumArtService', () => {
 
         expect(unlink).not.toHaveBeenCalled();
     });
+});
 
+describe('albumArtService warmup', () => {
     test('warms up missing covers and reports each result', async () => {
-        mockServerCover('QUJD');
+        mockServerCover(new Uint8Array([1, 2, 3]));
 
         const service = new AlbumArtService();
 
@@ -317,68 +280,32 @@ describe('albumArtService', () => {
          * Повторный прогрев ничего не перечитывает:
          * все обложки уже в памяти.
          */
-        (fetchBeefwebArtworkBase64 as jest.Mock).mockClear();
+        (fetchMpdArtwork as jest.Mock).mockClear();
 
         await service.warmup([ALBUM_ID]);
 
-        expect(fetchBeefwebArtworkBase64).not.toHaveBeenCalled();
+        expect(fetchMpdArtwork).not.toHaveBeenCalled();
     });
 
-    test('uses the catalog position of the first track path', async () => {
-        /*
-         * Альбом представлен не первым элементом каталога,
-         * кроме того, путь встречается в каталоге дважды:
-         * должно использоваться первое вхождение.
-         */
-        (readBeefwebCatalogPaths as jest.Mock).mockResolvedValue({
-            playlistId: 'pl-art',
-            paths: ['/music/other/01.flac', TRACK_PATH, TRACK_PATH],
-        });
-
-        (fetchBeefwebArtworkBase64 as jest.Mock).mockResolvedValue('QUJD');
+    test('uses the path of the first track of the album', async () => {
+        mockServerCover(new Uint8Array([1, 2, 3]));
 
         const service = new AlbumArtService();
 
         await service.getAlbumImage(ALBUM_ID);
 
-        expect(fetchBeefwebArtworkBase64).toHaveBeenCalledWith(
-            BEEFWEB_URL,
-            'pl-art',
-            1,
-        );
+        expect(fetchMpdArtwork).toHaveBeenCalledWith(TRACK_PATH);
     });
 
-    test('reports a mismatch when no album matches the catalog', async () => {
-        /*
-         * Содержимое каталога разошлось с Library: все альбомы
-         * должны получить обложку-заглушку, а ошибка контекста —
-         * попасть в диагностику.
-         */
-        (readBeefwebCatalogPaths as jest.Mock).mockResolvedValue({
-            playlistId: 'pl-art',
-            paths: ['/music/somebody-else/01.flac'],
-        });
+    test('returns null when the album is unknown', async () => {
+        mockServerCover(new Uint8Array([1, 2, 3]));
 
         const service = new AlbumArtService();
 
-        const errorSpy = jest
-            .spyOn(console, 'error')
-            .mockImplementation(() => {});
+        await expect(
+            service.getAlbumImage('Unknown|Album'),
+        ).resolves.toBeNull();
 
-        try {
-            await expect(service.getAlbumImage(ALBUM_ID)).resolves.toBeNull();
-
-            expect(fetchBeefwebArtworkBase64).not.toHaveBeenCalled();
-
-            expect(errorSpy).toHaveBeenCalledWith(
-                'Failed to load album image:',
-                ALBUM_ID,
-                expect.objectContaining({
-                    message: expect.stringContaining('beefweb-catalog'),
-                }),
-            );
-        } finally {
-            errorSpy.mockRestore();
-        }
+        expect(fetchMpdArtwork).not.toHaveBeenCalled();
     });
 });

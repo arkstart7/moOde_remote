@@ -6,19 +6,19 @@
  * пользовательский текст строится в UI на текущем языке.
  */
 
-import { buildBeefwebUrl } from './beefwebUrl';
+import { describeError, ErrorDescriptor } from '../i18n';
 
-import { fetchWithTimeout } from './fetchWithTimeout';
+import { buildMpdConfig } from './mpd/mpdClient';
+
+import { MpdConnection, tcpSocketFactory } from './mpd/mpdConnection';
 
 import { AppSettings } from './settingsService';
-
-import { ErrorDescriptor } from '../i18n';
 
 export interface SettingsValidationResult {
     errors: ErrorDescriptor[];
 }
 
-/** Таймаут проверки связи с Beefweb. */
+/** Таймаут проверки связи с MPD. */
 const CONNECTION_TIMEOUT_MS = 5000;
 
 export async function validateSettings(
@@ -27,49 +27,53 @@ export async function validateSettings(
     const errors: ErrorDescriptor[] = [];
 
     /*
-     * Проверка связи с Foobar2000 / Beefweb.
+     * Проверка адреса и порта.
      */
     if (!settings.foobarUrl.trim()) {
         errors.push({ code: 'err.validation.noUrl' });
-    } else {
-        let url: string | null = null;
 
-        try {
-            url = buildBeefwebUrl(settings.foobarUrl, settings.foobarPort);
+        return { errors };
+    }
 
-            const response = await fetchWithTimeout(
-                `${url}/api/player`,
-                undefined,
-                CONNECTION_TIMEOUT_MS,
-            );
+    let config;
 
-            if (!response.ok) {
-                errors.push({
-                    code: 'err.validation.noConnectionHttp',
+    try {
+        config = buildMpdConfig(settings.foobarUrl, settings.foobarPort);
+    } catch (error) {
+        errors.push(describeError(error));
 
-                    params: { status: response.status },
-                });
-            }
-        } catch (error) {
-            /*
-             * Причину (таймаут, DNS, отказ в соединении)
-             * показываем пользователю вместе с сообщением
-             * и пишем в консоль для диагностики.
-             */
-            console.error(
-                `Connection check failed for ${url ?? '(url not built)'}:`,
-                error,
-            );
+        return { errors };
+    }
 
-            errors.push({
-                code: 'err.validation.noConnection',
+    /*
+     * Проверка связи: отдельное короткоживущее TCP-соединение.
+     *
+     * Важно: не через runMpdCommand(), потому что общий клиент
+     * читает сохраненные, а не отредактированные настройки.
+     */
+    const connection = new MpdConnection();
 
-                params: {
-                    details:
-                        error instanceof Error ? ` ${error.message}` : '',
-                },
-            });
-        }
+    try {
+        await connection.connect(config, tcpSocketFactory);
+
+        await connection.send(['ping'], CONNECTION_TIMEOUT_MS);
+    } catch (error) {
+        /*
+         * Причину (таймаут, DNS, отказ в соединении)
+         * показываем пользователю вместе с сообщением
+         * и пишем в консоль для диагностики.
+         */
+        console.error(`Connection check failed for ${config.host}:`, error);
+
+        errors.push({
+            code: 'err.validation.noConnection',
+
+            params: {
+                details: error instanceof Error ? ` ${error.message}` : '',
+            },
+        });
+    } finally {
+        connection.close();
     }
 
     return { errors };

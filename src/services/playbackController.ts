@@ -2,7 +2,7 @@
  * @file playbackController.ts
  *
  * @description
- * Единый контроллер воспроизведения между приложением и Beefweb.
+ * Единый контроллер воспроизведения между приложением и MPD (moOde).
  *
  * Контроллер принадлежит уровню сервисов (как LibraryStore)
  * и не зависит от React. Компоненты подписываются на изменения
@@ -10,7 +10,9 @@
  *
  * Контроллер владеет:
  *
- * - циклом опроса состояния Beefweb;
+ * - подпиской на события MPD через idle (player/mixer/playlist/options);
+ * - локальным тикером, который между событиями продвигает позицию
+ *   воспроизведения примерно раз в секунду;
  * - состоянием воспроизведения (playing/paused/stopped);
  * - состоянием громкости и mute;
  * - оптимистичными обновлениями позиции после seek/play;
@@ -23,18 +25,21 @@
  *     playbackController.seek(30);
  *     ...
  *
- * Опрос запускается по требованию через acquirePolling():
+ * Подписка и тикер запускаются по требованию через acquirePolling():
  * каждый смонтированный и сфокусированный экран увеличивает
  * счетчик потребителей, поэтому независимо от числа экранов
- * в стеке навигации запросы уходят не чаще одного раза
- * в секунду.
+ * в стеке навигации существует не более одного idle-соединения.
+ *
+ * Пока настройки MPD недоступны, тикер раз в секунду повторяет
+ * попытку подписки, чтобы контроллер ожил сразу после того,
+ * как пользователь введет адрес сервера.
  */
 
 import { libraryStore } from '../library/LibraryStore';
 
 import {
-    BeefwebPlaybackState,
-    BeefwebVolumeInfo,
+    MpdPlaybackState,
+    MpdVolumeInfo,
     getPlayerSnapshot,
     pausePlayer,
     percentageToVolume,
@@ -44,16 +49,20 @@ import {
     setPlayerVolume,
     stopPlayer,
     volumeToPercentage,
-} from './beefwebPlayerService';
+} from './mpd/mpdPlayerService';
+
+import { resolveMpdConfig } from './mpd/mpdClient';
+
+import { MpdIdleClient } from './mpd/mpdIdleClient';
+
+import { MpdSubsystem } from './mpd/mpdTypes';
 
 import {
-    loadCurrentAlbumToBeefwebPlaylist,
-    loadTrackPathsToBeefwebPlaylist,
-} from './beefwebPlaylistService';
+    loadCurrentAlbumToMpdPlaylist,
+    loadTrackPathsToMpdPlaylist,
+} from './mpd/mpdPlaylistService';
 
 import { readPlaylistTrackInfo } from './tracklistService';
-
-import { resolveBeefwebUrl } from './beefwebUrl';
 
 import { saveCurrentPlayback } from './playbackService';
 
@@ -61,8 +70,16 @@ import { syncPlaybackSnapshot } from './playbackSyncService';
 
 import { ErrorDescriptor, LocalizedError } from '../i18n';
 
-/** Интервал опроса состояния проигрывателя. */
+/** Интервал локального продвижения позиции, мс. */
 const POLL_INTERVAL_MS = 1000;
+
+/** Подсистемы MPD, события которых обновляют снимок состояния. */
+const IDLE_SUBSYSTEMS: MpdSubsystem[] = [
+    'player',
+    'mixer',
+    'playlist',
+    'options',
+];
 
 /**
  * Окно, в течение которого позиция с сервера игнорируется
@@ -117,20 +134,25 @@ class PlaybackController {
      * ========================================================
      */
 
-    private pollTimer: ReturnType<typeof setInterval> | null = null;
+    private ticker: ReturnType<typeof setInterval> | null = null;
 
     private pollRefCount = 0;
 
     private pollInFlight = false;
 
-    private playbackState: BeefwebPlaybackState = 'stopped';
+    /** Подписчик на события MPD на отдельном idle-соединении. */
+    private idleClient = new MpdIdleClient();
+
+    private idleActive = false;
+
+    private playbackState: MpdPlaybackState = 'stopped';
 
     /** Выполняется ли сейчас команда (play/pause/seek/альбом/трек). */
     private pending = false;
 
     private errorData: ErrorDescriptor | null = null;
 
-    private volumeInfo: BeefwebVolumeInfo | null = null;
+    private volumeInfo: MpdVolumeInfo | null = null;
 
     private volumeLevel = DEFAULT_VOLUME_LEVEL;
 
@@ -171,7 +193,7 @@ class PlaybackController {
      * ========================================================
      */
 
-    getPlaybackState(): BeefwebPlaybackState {
+    getPlaybackState(): MpdPlaybackState {
         return this.playbackState;
     }
 
@@ -197,12 +219,12 @@ class PlaybackController {
 
     /*
      * ========================================================
-     * Polling lifecycle
+     * Subscription lifecycle
      * ========================================================
      */
 
     /**
-     * Регистрирует потребителя опроса и возвращает функцию
+     * Регистрирует потребителя событий и возвращает функцию
      * освобождения. Предназначено для useFocusEffect:
      *
      *     useFocusEffect(
@@ -212,22 +234,31 @@ class PlaybackController {
     acquirePolling = (): (() => void) => {
         this.pollRefCount += 1;
 
-        if (this.pollTimer === null) {
-            this.pollTimer = setInterval(() => {
-                this.refreshSnapshot();
+        if (this.ticker === null) {
+            this.ticker = setInterval(() => {
+                this.tick();
             }, POLL_INTERVAL_MS);
 
+            /*
+             * Снимок запрашивается первым: если сервер недоступен,
+             * ошибка подписки (например, пустые настройки) должна
+             * остаться в UI, а не быть перезаписана ошибкой снимка.
+             */
             this.refreshSnapshot();
+
+            this.ensureIdleSubscription();
         }
 
         return () => {
             this.pollRefCount = Math.max(0, this.pollRefCount - 1);
 
-            if (this.pollRefCount === 0 && this.pollTimer !== null) {
-                clearInterval(this.pollTimer);
+            if (this.pollRefCount === 0 && this.ticker !== null) {
+                clearInterval(this.ticker);
 
-                this.pollTimer = null;
+                this.ticker = null;
                 this.volumeReady = false;
+
+                this.stopIdleSubscription();
 
                 this.notify();
             }
@@ -235,7 +266,121 @@ class PlaybackController {
     };
 
     /**
-     * Одиночный тик синхронизации с сервером.
+     * Одиночный тик локального таймера: продвижение позиции
+     * и повторная попытка подписки, если она еще не установлена.
+     */
+    private tick(): void {
+        if (!this.idleActive) {
+            this.ensureIdleSubscription();
+        }
+
+        this.tickLocalPosition();
+    }
+
+    /**
+     * Локально продвигает позицию воспроизведения на секунду
+     * между idle-событиями, чтобы таймер на экране шел плавно.
+     *
+     * Внутри окна ожидания после seek/play базой служит
+     * ожидаемая позиция: сервер мог еще не применить новую.
+     */
+    private tickLocalPosition(): void {
+        if (
+            this.playbackState !== 'playing' ||
+            this.seekPending ||
+            this.commandPending
+        ) {
+            return;
+        }
+
+        const expectedPending =
+            this.expectedPosition !== null &&
+            Date.now() < this.expectedPositionUntil;
+
+        const base = expectedPending
+            ? this.expectedPosition!
+            : this.confirmedPosition;
+
+        const next = base + 1;
+
+        if (expectedPending) {
+            this.expectedPosition = next;
+
+            this.expectedPositionUntil =
+                Date.now() + EXPECTED_POSITION_WINDOW_MS;
+        }
+
+        this.confirmedPosition = next;
+
+        libraryStore.setCurrentTime(next);
+
+        this.notify();
+    }
+
+    /**
+     * Подписывается на idle-события MPD, если подписки еще нет.
+     *
+     * Ошибка настроек не прерывает работу: тикер повторит попытку
+     * на следующем тике, а пользователь увидит ошибку в UI.
+     */
+    private async ensureIdleSubscription(): Promise<void> {
+        if (this.idleActive || this.pollRefCount === 0) {
+            return;
+        }
+
+        try {
+            const config = await resolveMpdConfig();
+
+            if (this.idleActive || this.pollRefCount === 0) {
+                return;
+            }
+
+            this.idleClient.start(
+                config,
+                IDLE_SUBSYSTEMS,
+                this.handleIdleEvent,
+                this.handleIdleError,
+            );
+
+            this.idleActive = true;
+        } catch (error) {
+            console.error('MPD idle subscription unavailable:', error);
+
+            this.errorData = toErrorDescriptor(error, {
+                code: 'err.player.stateFailed',
+            });
+
+            this.notify();
+        }
+    }
+
+    private stopIdleSubscription(): void {
+        this.idleClient.stop();
+
+        this.idleActive = false;
+    }
+
+    /** Обработчик idle-события: обновляет снимок с сервера. */
+    private handleIdleEvent = (_subsystems: MpdSubsystem[]): void => {
+        this.refreshSnapshot();
+    };
+
+    /**
+     * Обработчик ошибки idle-соединения.
+     *
+     * Клиент переподключается сам; здесь только консольная
+     * диагностика и внеочередная попытка синхронизации.
+     */
+    private handleIdleError = (error: Error): void => {
+        console.error('MPD idle connection error:', error);
+
+        this.refreshSnapshot();
+    };
+
+    /**
+     * Синхронизация снимка состояния с сервером:
+     * по idle-событию, после ошибки соединения
+     * или при первом подключении потребителя.
      */
     private async refreshSnapshot(): Promise<void> {
         if (this.pollInFlight || this.seekPending || this.commandPending) {
@@ -245,9 +390,7 @@ class PlaybackController {
         this.pollInFlight = true;
 
         try {
-            const beefwebUrl = await resolveBeefwebUrl();
-
-            const snapshot = await getPlayerSnapshot(beefwebUrl);
+            const snapshot = await getPlayerSnapshot();
 
             const trackChanged = syncPlaybackSnapshot(snapshot, false);
 
@@ -284,7 +427,7 @@ class PlaybackController {
      * Обновляет громкость с сервера, если пользователь
      * сейчас не взаимодействует со слайдером.
      */
-    private applyRemoteVolume(volume: BeefwebVolumeInfo): void {
+    private applyRemoteVolume(volume: MpdVolumeInfo): void {
         this.volumeInfo = volume;
 
         if (this.volumePending || this.volumePreview) {
@@ -385,8 +528,6 @@ class PlaybackController {
         this.notify();
 
         try {
-            const beefwebUrl = await resolveBeefwebUrl();
-
             /*
              * Позиция хранится в поле активного источника:
              * currentTime для альбома, currentPlaylistTrackTime
@@ -433,18 +574,14 @@ class PlaybackController {
             }
 
             if (this.playbackState === 'playing') {
-                await pausePlayer(beefwebUrl);
+                await pausePlayer();
             } else {
-                await playCurrentTrack(
-                    beefwebUrl,
-                    effectiveTrackIndex,
-                    resumePosition,
-                );
+                await playCurrentTrack(effectiveTrackIndex, resumePosition);
 
                 this.markExpectedPosition(resumePosition);
             }
 
-            const snapshot = await getPlayerSnapshot(beefwebUrl);
+            const snapshot = await getPlayerSnapshot();
 
             this.playbackState = snapshot.playbackState;
 
@@ -516,9 +653,7 @@ class PlaybackController {
         this.notify();
 
         try {
-            const beefwebUrl = await resolveBeefwebUrl();
-
-            await playCurrentTrack(beefwebUrl, targetIndex);
+            await playCurrentTrack(targetIndex);
 
             if (playbackSource === 'playlist') {
                 libraryStore.setCurrentPlaylistEntryByIndex(targetIndex);
@@ -531,7 +666,7 @@ class PlaybackController {
                 'Failed to persist track change:',
             );
 
-            const snapshot = await getPlayerSnapshot(beefwebUrl);
+            const snapshot = await getPlayerSnapshot();
 
             this.playbackState = snapshot.playbackState;
         } catch (error) {
@@ -577,9 +712,7 @@ class PlaybackController {
         this.notify();
 
         try {
-            const beefwebUrl = await resolveBeefwebUrl();
-
-            await setPlayerPosition(beefwebUrl, position);
+            await setPlayerPosition(position);
 
             libraryStore.setCurrentTime(position);
             this.confirmedPosition = position;
@@ -646,12 +779,10 @@ class PlaybackController {
         this.notify();
 
         try {
-            const beefwebUrl = await resolveBeefwebUrl();
-
-            await setPlayerVolume(beefwebUrl, remoteVolume);
+            await setPlayerVolume(remoteVolume);
 
             if (this.volumeLevel > 0 && this.muted) {
-                await setPlayerMuted(beefwebUrl, false);
+                await setPlayerMuted(false);
 
                 this.muted = false;
                 this.confirmedMuted = false;
@@ -690,8 +821,6 @@ class PlaybackController {
         this.notify();
 
         try {
-            const beefwebUrl = await resolveBeefwebUrl();
-
             if (!nextMuted && this.volumeInfo) {
                 const remoteVolume = percentageToVolume(
                     this.volumeInfo,
@@ -699,14 +828,14 @@ class PlaybackController {
                 );
 
                 if (remoteVolume !== null) {
-                    await setPlayerVolume(beefwebUrl, remoteVolume);
+                    await setPlayerVolume(remoteVolume);
 
                     this.volumeLevel = this.savedVolume;
                     this.confirmedVolume = this.savedVolume;
                 }
             }
 
-            await setPlayerMuted(beefwebUrl, nextMuted);
+            await setPlayerMuted(nextMuted);
 
             this.confirmedMuted = nextMuted;
         } catch (error) {
@@ -724,7 +853,7 @@ class PlaybackController {
     };
 
     /**
-     * Выбирает альбом: загружает его в playlist "beefweb"
+     * Выбирает альбом: загружает его в очередь MPD
      * и восстанавливает прежнее состояние воспроизведения
      * (playing / paused / stopped).
      */
@@ -750,22 +879,19 @@ class PlaybackController {
 
         try {
             libraryStore.setCurrentAlbum(albumId);
+            const previousSnapshot = await getPlayerSnapshot();
 
-            const beefwebUrl = await resolveBeefwebUrl();
+            await stopPlayer();
 
-            const previousSnapshot = await getPlayerSnapshot(beefwebUrl);
-
-            await stopPlayer(beefwebUrl);
-
-            await loadCurrentAlbumToBeefwebPlaylist(beefwebUrl);
+            await loadCurrentAlbumToMpdPlaylist();
 
             if (previousSnapshot.playbackState === 'playing') {
-                await playCurrentTrack(beefwebUrl, 0);
+                await playCurrentTrack(0);
             } else if (previousSnapshot.playbackState === 'paused') {
-                await playCurrentTrack(beefwebUrl, 0);
-                await pausePlayer(beefwebUrl);
+                await playCurrentTrack(0);
+                await pausePlayer();
             } else {
-                await stopPlayer(beefwebUrl);
+                await stopPlayer();
             }
 
             await this.persistCurrentPlayback(
@@ -789,7 +915,7 @@ class PlaybackController {
     };
 
     /**
-     * Выбирает плейлист: читает его треки, загружает их в playlist "beefweb"
+     * Выбирает плейлист: читает его треки, загружает их в очередь MPD
      * и восстанавливает прежнее состояние воспроизведения
      * (playing / paused / stopped).
      */
@@ -821,25 +947,19 @@ class PlaybackController {
             }
 
             libraryStore.setCurrentPlaylist(playlistId, items);
+            const previousSnapshot = await getPlayerSnapshot();
 
-            const beefwebUrl = await resolveBeefwebUrl();
+            await stopPlayer();
 
-            const previousSnapshot = await getPlayerSnapshot(beefwebUrl);
-
-            await stopPlayer(beefwebUrl);
-
-            await loadTrackPathsToBeefwebPlaylist(
-                beefwebUrl,
-                items.map(item => item.path),
-            );
+            await loadTrackPathsToMpdPlaylist(items.map(item => item.path));
 
             if (previousSnapshot.playbackState === 'playing') {
-                await playCurrentTrack(beefwebUrl, 0);
+                await playCurrentTrack(0);
             } else if (previousSnapshot.playbackState === 'paused') {
-                await playCurrentTrack(beefwebUrl, 0);
-                await pausePlayer(beefwebUrl);
+                await playCurrentTrack(0);
+                await pausePlayer();
             } else {
-                await stopPlayer(beefwebUrl);
+                await stopPlayer();
             }
 
             await this.persistCurrentPlayback(
@@ -885,9 +1005,7 @@ class PlaybackController {
         this.notify();
 
         try {
-            const beefwebUrl = await resolveBeefwebUrl();
-
-            await playCurrentTrack(beefwebUrl, trackIndex);
+            await playCurrentTrack(trackIndex);
 
             libraryStore.setActiveTrack(trackId);
 
@@ -895,7 +1013,7 @@ class PlaybackController {
                 'Failed to persist selected track:',
             );
 
-            const snapshot = await getPlayerSnapshot(beefwebUrl);
+            const snapshot = await getPlayerSnapshot();
 
             this.playbackState = snapshot.playbackState;
         } catch (error) {
@@ -945,9 +1063,7 @@ class PlaybackController {
         this.notify();
 
         try {
-            const beefwebUrl = await resolveBeefwebUrl();
-
-            await playCurrentTrack(beefwebUrl, entryIndex);
+            await playCurrentTrack(entryIndex);
 
             libraryStore.setCurrentPlaylistEntryByIndex(entryIndex);
 
@@ -955,7 +1071,7 @@ class PlaybackController {
                 'Failed to persist selected playlist entry:',
             );
 
-            const snapshot = await getPlayerSnapshot(beefwebUrl);
+            const snapshot = await getPlayerSnapshot();
 
             this.playbackState = snapshot.playbackState;
         } catch (error) {

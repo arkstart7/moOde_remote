@@ -2,7 +2,7 @@
  * @file src/services/LibraryLoader.ts
  *
  * @description
- * Загружает медиатеку из плейлиста-каталога Beefweb,
+ * Загружает медиатеку из базы MPD,
  * импортирует Library, устанавливает её в LibraryStore
  * и восстанавливает текущее состояние воспроизведения.
  */
@@ -14,33 +14,29 @@ import { libraryStore } from '../library/LibraryStore';
 
 import { initializeCurrentPlayback } from './playbackInitializer';
 
-import { loadBeefwebCatalogTracks } from './beefwebCatalogService';
+import { loadMpdLibraryTracks } from './mpd/mpdCatalogService';
 
 import { LocalizedError } from '../i18n';
 
 /**
- * Загружает Library из плейлиста "beefweb-catalog".
+ * Загружает Library из медиатеки MPD.
  *
  * После успешного импорта:
  *
  * 1. Library помещается в LibraryStore.
  * 2. Восстанавливается CurrentPlayback.
  * 3. CurrentPlayback помещается в LibraryStore.
- *
- * @param beefwebUrl
- * Базовый URL Beefweb без завершающего "/".
  */
-export async function loadLibrary(beefwebUrl: string): Promise<Library> {
+export async function loadLibrary(): Promise<Library> {
     /*
      * --------------------------------------------------------
-     * 1. Читаем треки плейлиста-каталога.
+     * 1. Читаем треки медиатеки MPD.
      * --------------------------------------------------------
      *
      * Ошибки чтения уже содержат понятные пользователю сообщения
-     * (плейлист отсутствует, пуст и так далее), поэтому
-     * пробрасываются как есть.
+     * и пробрасываются как есть.
      */
-    const foobarLibrary = await loadBeefwebCatalogTracks(beefwebUrl);
+    const foobarLibrary = await loadMpdLibraryTracks();
 
     /*
      * --------------------------------------------------------

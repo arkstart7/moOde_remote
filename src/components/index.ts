@@ -6,7 +6,7 @@
  */
 export { default as AppText } from './AppText';
 export { default as Dropdown } from './Dropdown';
-export { default as BeefwebWaveformSlider } from './BeefwebWaveformSlider';
+export { default as WaveformSlider } from './WaveformSlider';
 export { default as MenuItem } from './MenuItem';
 export { default as NavigationBar } from './NavigationBar';
 export { default as VolumeSlider } from './VolumeSlider';

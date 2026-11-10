@@ -22,7 +22,7 @@ export const zh: TranslationDictionary = {
      * --------------------------------------------------------
      */
     'settings.title': '设置',
-    'settings.urlLabel': 'Foobar2000 URL',
+    'settings.urlLabel': 'MPD URL',
     'settings.portLabel': '端口',
     'settings.checking': '正在检查设置...',
     'settings.loadFailed': '无法加载设置',
@@ -109,94 +109,68 @@ export const zh: TranslationDictionary = {
     'err.unknown': '未知错误。',
     'err.generic': '{details}',
     'err.response.invalid': '服务器返回了无效的响应。',
-    'err.settings.notFound': '未配置 Foobar2000 设置。',
+    'err.settings.notFound': '未配置 MPD 设置。',
     'err.settings.loadFailed': '无法加载设置。',
     'err.server.timeout':
         '服务器无响应。请检查电脑上的 foobar2000 是否正在运行。',
 
     /*
      * --------------------------------------------------------
-     * Foobar2000 URL 和端口错误
+     * MPD URL 和端口错误
      * --------------------------------------------------------
      */
-    'err.url.empty': '未指定 Foobar2000 URL。',
-    'err.url.invalid': 'Foobar2000 URL 无效。',
-    'err.url.protocol': 'Foobar2000 URL 必须使用 HTTP 或 HTTPS。',
-    'err.port.notNumber': 'Foobar2000 端口必须是数字。',
-    'err.port.outOfRange': 'Foobar2000 端口必须介于 1 到 65535 之间。',
+    'err.url.empty': '未指定 MPD URL。',
+    'err.url.invalid': 'MPD URL 无效。',
+    'err.url.protocol': 'MPD URL 必须使用 HTTP 或 HTTPS。',
+    'err.port.notNumber': 'MPD 端口必须是数字。',
+    'err.port.outOfRange': 'MPD 端口必须介于 1 到 65535 之间。',
 
     /*
      * --------------------------------------------------------
      * 设置验证错误
      * --------------------------------------------------------
      */
-    'err.validation.noUrl': '未指定 Foobar2000 URL',
-    'err.validation.noConnection': '无法连接到 Foobar2000。{details}',
-    'err.validation.noConnectionHttp': '无法连接到 Foobar2000（HTTP {status}）',
+    'err.validation.noUrl': '未指定 MPD URL',
+    'err.validation.noConnection': '无法连接到 MPD。{details}',
 
     /*
      * --------------------------------------------------------
-     * Beefweb 播放列表列表错误
+     * MPD 播放列表列表错误
      * --------------------------------------------------------
      */
-    'err.playlists.listFailed': '无法获取 Beefweb 播放列表列表。{details}',
-    'err.playlists.listFailedHttp':
-        '无法获取 Beefweb 播放列表列表。HTTP {status}。{details}',
+    'err.playlists.listFailed': '无法获取 MPD 播放列表列表。{details}',
 
     /*
      * --------------------------------------------------------
-     * 播放列表“beefweb-catalog”目录错误
+     * 播放列表“медиатека MPD”目录错误
      * --------------------------------------------------------
      */
     'err.catalog.readFailed': '无法读取播放列表“{playlist}”的项目。{details}',
-    'err.catalog.readFailedHttp':
-        '无法读取播放列表“{playlist}”的项目。HTTP {status}。{details}',
-    'err.catalog.missing':
-        '未找到播放列表“{playlist}”。在 foobar2000 中打开媒体库，选择所有专辑，并将其发送到名为“{playlist}”的新播放列表。',
     'err.catalog.empty':
         '播放列表“{playlist}”为空。请将您的整个媒体库发送到该列表。',
     'err.catalog.tooLarge':
         '播放列表“{playlist}”包含 {total} 个项目，超过了 {limit} 的限制。',
-    'err.catalog.rowsMismatch':
-        '播放列表“{playlist}”：已读取行数：{count}（共 {total}）。',
-    'err.catalog.invalidResponse':
-        '播放列表“{playlist}”：服务器返回了无效的响应。',
-    'err.catalog.chunkTooLarge':
-        '播放列表“{playlist}”：收到的项目：{count}，而不是 {expected}。',
-    'err.catalog.columnsMismatch':
-        '播放列表“{playlist}”：服务器返回了 {count} 列，而不是 {expected}。',
 
     /*
      * --------------------------------------------------------
-     * 工作播放列表“beefweb”错误
+     * MPD 播放队列错误
      * --------------------------------------------------------
      */
     'err.playlist.tracksUnavailable': '无法获取当前专辑的曲目。',
-    'err.playlist.beefwebMissing': '未找到播放列表“beefweb”。',
-    'err.playlist.createFailed': '无法创建播放列表“beefweb”。{details}',
-    'err.playlist.createFailedHttp':
-        '无法创建播放列表“beefweb”。HTTP {status}。{details}',
-    'err.playlist.clearFailed': '无法清空播放列表“beefweb”。{details}',
-    'err.playlist.clearFailedHttp':
-        '无法清空播放列表“beefweb”。HTTP {status}。{details}',
-    'err.playlist.addItemsFailed':
-        '无法将曲目添加到播放列表“beefweb”。{details}',
-    'err.playlist.addItemsFailedHttp':
-        '无法将曲目添加到播放列表“beefweb”。HTTP {status}。{details}',
+    'err.playlist.clearFailed': '无法清空 MPD 播放队列。{details}',
+    'err.playlist.addItemsFailed': '无法将曲目添加到 MPD 播放队列。{details}',
 
     'err.playlist.itemsFailed': '无法读取播放列表曲目。{details}',
-    'err.playlist.itemsFailedHttp':
-        '无法读取播放列表曲目。HTTP {status}。{details}',
     'err.playlist.emptyPlaylist': '播放列表为空。',
     'err.playlist.selectFailed': '无法选择播放列表。{details}',
 
     /*
      * --------------------------------------------------------
-     * Beefweb 播放器错误
+     * MPD 播放器错误
      * --------------------------------------------------------
      */
-    'err.player.stateFailed': '无法获取 Beefweb 播放器状态。{details}',
-    'err.player.unknownState': 'Beefweb 返回了未知的播放器状态。',
+    'err.player.stateFailed': '无法获取 MPD 播放器状态。{details}',
+    'err.player.unknownState': 'MPD 返回了未知的播放器状态。',
     'err.volume.notFinite': '音量必须是有限数字。',
     'err.volume.setFailed': '无法更改音量。{details}',
     'err.volume.rangeUnknown': '无法确定音量范围。',
@@ -215,7 +189,7 @@ export const zh: TranslationDictionary = {
      */
     'err.playback.changeFailed': '无法更改播放状态。',
     'err.track.switchFailed': '无法切换曲目。',
-    'err.album.loadFailed': '无法将专辑加载到 Foobar2000。',
+    'err.album.loadFailed': '无法将专辑加载到 MPD。',
 
     /*
      * --------------------------------------------------------
@@ -223,9 +197,6 @@ export const zh: TranslationDictionary = {
      * --------------------------------------------------------
      */
     'err.library.importFailed': '无法导入媒体库。',
-    'err.artwork.catalogMismatch':
-        '无法将专辑与播放列表“beefweb-catalog”匹配。请在 foobar2000 中更新该播放列表并重新启动应用程序。',
-    'err.artwork.fetchFailedHttp': '无法获取专辑封面。HTTP {status}。',
-    'err.artwork.emptyResponse': '封面响应为空。',
+    'err.artwork.fetchFailed': '无法获取专辑封面。{details}',
     'err.artwork.base64Unavailable': '此环境中不可用 Base64 编码。',
 } as const;

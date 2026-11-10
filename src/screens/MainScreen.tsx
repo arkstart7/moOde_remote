@@ -34,7 +34,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import {
     AppText,
-    BeefwebWaveformSlider,
+    WaveformSlider,
     NextIconLarge,
     PauseIconLarge,
     PlayIconLarge,
@@ -337,7 +337,7 @@ export default function MainScreen() {
      * Прогресс-бар с цифрами времени под ним.
      */
     const progressBlock = (
-        <BeefwebWaveformSlider
+        <WaveformSlider
             trackId={currentTrack?.id ?? ''}
             currentTime={currentTime}
             duration={
