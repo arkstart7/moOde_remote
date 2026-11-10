@@ -1,0 +1,12 @@
+# Native projects and generated output are formatted by their own tools.
+android/
+ios/
+vendor/
+node_modules/
+coverage/
+.idea/
+.vscode/
+
+# Lockfiles and bundles
+package-lock.json
+*.jsbundle
