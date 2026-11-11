@@ -78,7 +78,7 @@ describe('themeService', () => {
         await service.saveTheme('dark');
 
         expect(setItemMock).toHaveBeenCalledWith(
-            '@foobar_remote/theme',
+            '@moode_remote/theme',
             'dark',
         );
 

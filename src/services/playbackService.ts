@@ -12,7 +12,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { CurrentPlayback } from '../library/types';
 
-const PLAYBACK_KEY = '@foobar_remote/currentPlayback';
+import { readMigratedStorageValue } from './storageMigration';
+
+const PLAYBACK_KEY = '@moode_remote/currentPlayback';
+
+/*
+ * Ключ состояния воспроизведения из прежней версии
+ * приложения (FoobarRemote). При первом чтении значение
+ * переносится в новый ключ.
+ */
+const LEGACY_PLAYBACK_KEY = '@foobar_remote/currentPlayback';
 
 /**
  * Загружает сохраненное состояние воспроизведения.
@@ -21,7 +30,10 @@ const PLAYBACK_KEY = '@foobar_remote/currentPlayback';
  */
 export async function loadCurrentPlayback(): Promise<CurrentPlayback | null> {
     try {
-        const value = await AsyncStorage.getItem(PLAYBACK_KEY);
+        const value = await readMigratedStorageValue(
+            PLAYBACK_KEY,
+            LEGACY_PLAYBACK_KEY,
+        );
 
         if (!value) {
             return null;
@@ -112,7 +124,10 @@ export async function saveCurrentPlayback(
  */
 export async function clearCurrentPlayback(): Promise<void> {
     try {
-        await AsyncStorage.removeItem(PLAYBACK_KEY);
+        await Promise.all([
+            AsyncStorage.removeItem(PLAYBACK_KEY),
+            AsyncStorage.removeItem(LEGACY_PLAYBACK_KEY),
+        ]);
     } catch (error) {
         console.error('Failed to clear current playback:', error);
 

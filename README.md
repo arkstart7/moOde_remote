@@ -1,4 +1,4 @@
-# FoobarRemote
+# moOdeRemote
 
 Мобильный пульт для музыкального сервера на базе [MPD](https://www.musicpd.org/)
 (Music Player Daemon), такого как [moOde Audio](https://moodeaudio.org/).

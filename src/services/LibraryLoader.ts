@@ -36,7 +36,7 @@ export async function loadLibrary(): Promise<Library> {
      * Ошибки чтения уже содержат понятные пользователю сообщения
      * и пробрасываются как есть.
      */
-    const foobarLibrary = await loadMpdLibraryTracks();
+    const mpdLibrary = await loadMpdLibraryTracks();
 
     /*
      * --------------------------------------------------------
@@ -46,7 +46,7 @@ export async function loadLibrary(): Promise<Library> {
     let library: Library;
 
     try {
-        library = importLibrary(foobarLibrary);
+        library = importLibrary(mpdLibrary);
     } catch (error) {
         console.error('Failed to import library:', error);
 

@@ -29,7 +29,7 @@ export async function validateSettings(
     /*
      * Проверка адреса и порта.
      */
-    if (!settings.foobarUrl.trim()) {
+    if (!settings.host.trim()) {
         errors.push({ code: 'err.validation.noUrl' });
 
         return { errors };
@@ -38,7 +38,7 @@ export async function validateSettings(
     let config;
 
     try {
-        config = buildMpdConfig(settings.foobarUrl, settings.foobarPort);
+        config = buildMpdConfig(settings.host, settings.port);
     } catch (error) {
         errors.push(describeError(error));
 

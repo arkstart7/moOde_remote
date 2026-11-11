@@ -94,9 +94,9 @@ beforeEach(() => {
     jest.clearAllMocks();
 
     loadSettingsMock.mockResolvedValue({
-        foobarUrl: 'raspberrypi.local',
+        host: 'raspberrypi.local',
 
-        foobarPort: '',
+        port: '',
     });
 
     setMpdSocketFactory(async (_host, _port) => {

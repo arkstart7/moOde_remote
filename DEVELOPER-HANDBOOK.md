@@ -1,4 +1,4 @@
-# Справочник разработчика FoobarRemote
+# Справочник разработчика moOdeRemote
 
 Внутреннее устройство приложения: архитектура, протокол MPD, поток запуска,
 ключевые модули, паттерны состояния и типовые задачи. Конвенции оформления
@@ -56,7 +56,7 @@
 | `mpdParser.ts`      | Разбор строк `key: value` в пары, группировка в записи (`OBJECT_START_KEYS`), парсинг `status`, экранирование аргументов `quoteMpdArg`        |
 | `mpdPlayerService.ts` | Снапшот из `status` + `currentsong`, команды play/pause/stop, `setvol`, `seekcur`; громкость 0..100, mute через `setvol 0`                  |
 | `mpdPlaylistService.ts` | Управление очередью: `clear` + `add` порциями по 200 команд в кадре                                                                       |
-| `mpdCatalogService.ts` | `listallinfo`: вся база MPD → `FoobarTrack[]`; лимит 200 000 треков; составные теги `3/12` разбираются в номер и количество                |
+| `mpdCatalogService.ts` | `listallinfo`: вся база MPD → `MpdTrack[]`; лимит 200 000 треков; составные теги `3/12` разбираются в номер и количество                |
 | `mpdArtworkService.ts` | Бинарные `albumart`/`readpicture` чанками по 8192 байта; таймаут 60 с; лимит 32 МБ; ACK = обложки нет                                       |
 
 Детали протокола, о которых нужно помнить:
@@ -107,7 +107,7 @@ StartScreen (useFocusEffect)
 | Файл                 | Назначение                                                                                                                                                        |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `types.ts`           | Доменная модель: `Library`, жанр → исполнители/альбомы, альбом → диски → треки, `CurrentPlayback` (источник: альбом или плейлист)                                   |
-| `LibraryImporter.ts` | Чистая функция `importLibrary(FoobarTrack[]): Library`: первое значение многозначных тегов, `album artist` → fallback `artist`, отсутствующий `genre` → `"?"`, диск → 1; ID альбома = `album artist\|album`; сортировка по disc, затем track |
+| `LibraryImporter.ts` | Чистая функция `importLibrary(MpdTrack[]): Library`: первое значение многозначных тегов, `album artist` → fallback `artist`, отсутствующий `genre` → `"?"`, диск → 1; ID альбома = `album artist\|album`; сортировка по disc, затем track |
 | `LibraryStore.ts`    | Синглтон: хранит `Library`, выбор жанра/исполнителя, активный источник и `CurrentPlayback`. Селекторы возвращают новые массивы только при изменении данных          |
 
 ### src/services
@@ -119,7 +119,7 @@ StartScreen (useFocusEffect)
 | `fetchWithTimeout.ts`    | `fetch` с таймаутом (по умолчанию 5000 мс) — для HTTP-запросов вне MPD                                                                                         |
 | `LibraryLoader.ts`       | Конвейер: `loadMpdLibraryTracks` → `importLibrary` → `libraryStore.setLibrary` → `initializeCurrentPlayback`                                                   |
 | `playbackInitializer.ts` | Валидация и восстановление сохраненного `CurrentPlayback`, иначе первый альбом/трек (тот же порядок, что у списка альбомов: title → artist)                    |
-| `playbackService.ts`     | Персистентность `CurrentPlayback` в AsyncStorage (`@foobar_remote/currentPlayback`)                                                                            |
+| `playbackService.ts`     | Персистентность `CurrentPlayback` в AsyncStorage (`@moode_remote/currentPlayback`)                                                                            |
 | `playbackController.ts`  | Владелец idle-подписки и тикера, команды: playPause, selectTrack, selectAlbum, playPlaylistEntry, seek, громкость с preview/commit, mute; оптимистичная позиция после seek/play игнорирует сервер 2 секунды (допуск ±1 с); до первого ответа сервера громкость считается 40 |
 | `playbackSyncService.ts` | `syncPlaybackSnapshot`: перенос активного индекса и позиции с сервера в `LibraryStore`, признак автопереключения трека                                         |
 | `albumArtService.ts`     | Единая точка обложек: запрос по пути первого трека альбома, дисковый кэш `album-art-v3` в CachesDirectoryPath (имя `{artist}_{title}.jpg`), прогрев списка пулом из 4 загрузок, удаление устаревших каталогов `album-art`, `album-art-v2` |

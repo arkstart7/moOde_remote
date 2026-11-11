@@ -115,12 +115,12 @@ export function extractMpdHost(value: string): MpdAddress {
  * сохраненными значениями.
  */
 export function buildMpdConfig(
-    foobarUrl: string,
-    foobarPort: string,
+    serverUrl: string,
+    serverPort: string,
 ): MpdConnectionConfig {
-    const { host, portFromUrl } = extractMpdHost(foobarUrl);
+    const { host, portFromUrl } = extractMpdHost(serverUrl);
 
-    const settingsPort = foobarPort.trim();
+    const settingsPort = serverPort.trim();
 
     let port = DEFAULT_MPD_PORT;
 
@@ -150,11 +150,11 @@ export function buildMpdConfig(
 export async function resolveMpdConfig(): Promise<MpdConnectionConfig> {
     const settings = await loadSettings();
 
-    if (!settings || !settings.foobarUrl.trim()) {
+    if (!settings || !settings.host.trim()) {
         throw new LocalizedError('err.settings.notFound');
     }
 
-    return buildMpdConfig(settings.foobarUrl, settings.foobarPort);
+    return buildMpdConfig(settings.host, settings.port);
 }
 
 /**

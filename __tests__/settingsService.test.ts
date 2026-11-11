@@ -17,8 +17,8 @@ function loadFreshModule(): typeof SettingsServiceModule {
 }
 
 const validSettings = {
-    foobarUrl: '192.168.1.100',
-    foobarPort: '8880',
+    host: '192.168.1.100',
+    port: '8880',
 };
 
 describe('settingsService', () => {
@@ -90,8 +90,8 @@ describe('settingsService', () => {
 
         getItemMock.mockResolvedValue(
             JSON.stringify({
-                foobarUrl: 123,
-                foobarPort: '8880',
+                host: 123,
+                port: '8880',
             }),
         );
 
@@ -123,7 +123,7 @@ describe('settingsService', () => {
         expect(reloaded).toEqual(validSettings);
         expect(getItemMock).not.toHaveBeenCalled();
         expect(setItemMock).toHaveBeenCalledWith(
-            '@foobar_remote/settings',
+            '@moode_remote/settings',
             JSON.stringify(validSettings),
         );
     });
@@ -139,6 +139,6 @@ describe('settingsService', () => {
         getItemMock.mockResolvedValue(null);
 
         await expect(service.loadSettings()).resolves.toBeNull();
-        expect(removeItemMock).toHaveBeenCalledWith('@foobar_remote/settings');
+        expect(removeItemMock).toHaveBeenCalledWith('@moode_remote/settings');
     });
 });

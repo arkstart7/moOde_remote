@@ -246,7 +246,7 @@ export default function StartScreen({ navigation }: Props) {
 
                         /*
                          * Сохранённый плейлист мог быть удалён
-                         * на сервере (например, в foobar2000).
+                         * на сервере (например, в MPD).
                          * В этом случае состояние по умолчанию:
                          * первый альбом и первый трек.
                          */
@@ -359,7 +359,7 @@ export default function StartScreen({ navigation }: Props) {
             >
                 <View style={styles.coverImageContainer}>
                     <Image
-                        source={require('../assets/images/foobar_18940.png')}
+                        source={require('../assets/images/no-album-art.jpg')}
                         resizeMode="contain"
                         style={styles.coverImage}
                     />

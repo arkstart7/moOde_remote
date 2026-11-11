@@ -1,7 +1,7 @@
 # AGENTS.md
 
-Guidance for coding agents working in FoobarRemote, a React Native 0.86
-application written in TypeScript for controlling Foobar2000 through Beefweb.
+Guidance for coding agents working in moOdeRemote, a React Native 0.86
+application written in TypeScript for controlling an MPD server (moOde).
 
 ## Repository Map
 
@@ -54,7 +54,7 @@ npx prettier --write path/to/file.tsx
 
 -   ESLint extends `@react-native` via `.eslintrc.js`.
 -   The default `no-bitwise` rule allows `^`, `>>>`, `^=`, and `|`.
--   `BeefwebWaveformSlider.tsx` disables `no-bitwise` because its waveform
+-   `WaveformSlider.tsx` disables `no-bitwise` because its waveform
     processing needs bitwise operations.
 -   Run lint and typecheck for source changes; format only the files you touch.
 -   Do not add a new lint, format, or build script without a clear need.

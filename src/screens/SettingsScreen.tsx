@@ -148,9 +148,9 @@ export default function SettingsScreen({ navigation, route }: Props) {
      * ========================================================
      */
 
-    const [foobarUrl, setFoobarUrl] = useState('');
+    const [host, setHost] = useState('');
 
-    const [foobarPort, setFoobarPort] = useState('');
+    const [port, setPort] = useState('');
 
     /*
      * ========================================================
@@ -245,9 +245,9 @@ export default function SettingsScreen({ navigation, route }: Props) {
                     return;
                 }
 
-                setFoobarUrl(settings.foobarUrl);
+                setHost(settings.host);
 
-                setFoobarPort(settings.foobarPort);
+                setPort(settings.port);
             } catch (error) {
                 console.error('Failed to load settings:', error);
 
@@ -277,9 +277,9 @@ export default function SettingsScreen({ navigation, route }: Props) {
      */
 
     const settingsNeedValidation = useCallback(() => {
-        const url = foobarUrl.trim();
+        const url = host.trim();
 
-        const port = foobarPort.trim();
+        const portText = port.trim();
 
         /*
          * Есть ошибки.
@@ -295,7 +295,7 @@ export default function SettingsScreen({ navigation, route }: Props) {
          * Есть пустое поле.
          */
 
-        if (!url || !port) {
+        if (!url || !portText) {
             return true;
         }
 
@@ -314,8 +314,8 @@ export default function SettingsScreen({ navigation, route }: Props) {
          * хотя бы одно поле.
          */
 
-        return url !== saved.foobarUrl || port !== saved.foobarPort;
-    }, [foobarUrl, foobarPort, errors]);
+        return url !== saved.host || portText !== saved.port;
+    }, [host, port, errors]);
 
     /*
      * ========================================================
@@ -345,9 +345,9 @@ export default function SettingsScreen({ navigation, route }: Props) {
         setErrors([]);
 
         const settings: AppSettings = {
-            foobarUrl: foobarUrl.trim(),
+            host: host.trim(),
 
-            foobarPort: foobarPort.trim(),
+            port: port.trim(),
         };
 
         try {
@@ -412,7 +412,7 @@ export default function SettingsScreen({ navigation, route }: Props) {
 
             setChecking(false);
         }
-    }, [foobarUrl, foobarPort, checking, navigation]);
+    }, [host, port, checking, navigation]);
 
     /*
      * ========================================================
@@ -622,8 +622,8 @@ export default function SettingsScreen({ navigation, route }: Props) {
                             backgroundColor: theme.background,
                         },
                     ]}
-                    value={foobarUrl}
-                    onChangeText={setFoobarUrl}
+                    value={host}
+                    onChangeText={setHost}
                     placeholder="192.168.1.100"
                     placeholderTextColor={theme.textSecondary}
                     autoCapitalize="none"
@@ -646,8 +646,8 @@ export default function SettingsScreen({ navigation, route }: Props) {
                             backgroundColor: theme.background,
                         },
                     ]}
-                    value={foobarPort}
-                    onChangeText={setFoobarPort}
+                    value={port}
+                    onChangeText={setPort}
                     placeholder="8880"
                     placeholderTextColor={theme.textSecondary}
                     keyboardType="numeric"
@@ -825,8 +825,8 @@ export default function SettingsScreen({ navigation, route }: Props) {
                                                     theme.background,
                                             },
                                         ]}
-                                        value={foobarUrl}
-                                        onChangeText={setFoobarUrl}
+                                        value={host}
+                                        onChangeText={setHost}
                                         placeholder="192.168.1.100"
                                         placeholderTextColor={
                                             theme.textSecondary
@@ -857,8 +857,8 @@ export default function SettingsScreen({ navigation, route }: Props) {
                                                     theme.background,
                                             },
                                         ]}
-                                        value={foobarPort}
-                                        onChangeText={setFoobarPort}
+                                        value={port}
+                                        onChangeText={setPort}
                                         placeholder="8880"
                                         placeholderTextColor={
                                             theme.textSecondary

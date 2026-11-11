@@ -1,4 +1,4 @@
-import { importLibrary, FoobarLibrary } from '../src/library/LibraryImporter';
+import { importLibrary, MpdTrackList } from '../src/library/LibraryImporter';
 import { libraryStore } from '../src/library/LibraryStore';
 
 function createTrack(path: string, meta: Record<string, string[]>) {
@@ -11,7 +11,7 @@ function createTrack(path: string, meta: Record<string, string[]>) {
 }
 
 test('trims textual tags and merges entities with equivalent whitespace', () => {
-    const foobarLibrary: FoobarLibrary = [
+    const mpdLibrary: MpdTrackList = [
         createTrack('first.flac', {
             title: ['  First track  '],
             artist: ['  Track artist  '],
@@ -30,7 +30,7 @@ test('trims textual tags and merges entities with equivalent whitespace', () => 
         }),
     ];
 
-    const library = importLibrary(foobarLibrary);
+    const library = importLibrary(mpdLibrary);
 
     expect(Object.keys(library.albums)).toHaveLength(1);
     expect(Object.keys(library.artists)).toHaveLength(1);

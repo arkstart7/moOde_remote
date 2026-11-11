@@ -6,13 +6,13 @@
  *
  * Команда listallinfo возвращает все файлы базы с тегами;
  * записи группируются парсером (см. mpdParser.groupPairs) и
- * преобразуются в структуру FoobarTrack, которую принимает
+ * преобразуются в структуру MpdTrack, которую принимает
  * существующий LibraryImporter.
  *
- * В отличие от прежнего Beefweb-каталога, медиатека MPD
- * поддерживается самим сервером (music_directory), поэтому
- * служебный плейлист-каталог больше не нужен: несколько
- * устройств, разделяющих один сервер, не конкурируют за него.
+ * Медиатека поддерживается самим сервером MPD
+ * (music_directory), поэтому дополнительный каталог
+ * на стороне приложения не нужен: несколько устройств,
+ * разделяющих один сервер, не конкурируют за него.
  */
 
 import { runMpdCommand } from './mpdClient';
@@ -21,18 +21,18 @@ import { OBJECT_START_KEYS, groupPairs, parsePairs } from './mpdParser';
 
 import { ErrorDescriptor, LocalizedError } from '../../i18n';
 
-import { FoobarTrack } from '../../library/LibraryImporter';
+import { MpdTrack } from '../../library/LibraryImporter';
 
 /** Защита от аномально большого ответа: максимальный размер каталога. */
 const MAX_CATALOG_ITEMS = 200_000;
 
 /**
- * Загружает всю медиатеку MPD и преобразует ее в FoobarTrack[].
+ * Загружает всю медиатеку MPD и преобразует ее в MpdTrack[].
  *
  * Ошибки транспорта оборачиваются в понятные пользователю
  * LocalizedError; сама MPD-ошибка ACK пробрасывается как есть.
  */
-export async function loadMpdLibraryTracks(): Promise<FoobarTrack[]> {
+export async function loadMpdLibraryTracks(): Promise<MpdTrack[]> {
     const operation: ErrorDescriptor = { code: 'err.catalog.readFailed' };
 
     let frame;
@@ -47,7 +47,7 @@ export async function loadMpdLibraryTracks(): Promise<FoobarTrack[]> {
 
     const entries = groupPairs(parsePairs(frame.lines), OBJECT_START_KEYS);
 
-    const tracks: FoobarTrack[] = [];
+    const tracks: MpdTrack[] = [];
 
     for (const entry of entries) {
         const path = entry.file?.[0];
@@ -66,7 +66,7 @@ export async function loadMpdLibraryTracks(): Promise<FoobarTrack[]> {
             });
         }
 
-        tracks.push(toFoobarTrack(entry, path));
+        tracks.push(toMpdTrack(entry, path));
     }
 
     if (tracks.length === 0) {
@@ -77,16 +77,13 @@ export async function loadMpdLibraryTracks(): Promise<FoobarTrack[]> {
 }
 
 /**
- * Преобразует группированную запись MPD в FoobarTrack.
+ * Преобразует группированную запись MPD в MpdTrack.
  *
  * Семантика прежнего импорта сохранена: для мультизначных
  * тегов берется первое значение; составные номера
  * "3/12" и "1/2" разбираются в номер и общее количество.
  */
-function toFoobarTrack(
-    entry: Record<string, string[]>,
-    path: string,
-): FoobarTrack {
+function toMpdTrack(entry: Record<string, string[]>, path: string): MpdTrack {
     return {
         path,
 

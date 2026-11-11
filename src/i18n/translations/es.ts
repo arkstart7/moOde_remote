@@ -113,7 +113,7 @@ export const es: TranslationDictionary = {
     'err.settings.notFound': 'La configuración de MPD no está configurada.',
     'err.settings.loadFailed': 'No se pudo cargar la configuración.',
     'err.server.timeout':
-        'El servidor no responde. Compruebe que foobar2000 está en ejecución en el ordenador.',
+        'El servidor no responde. Compruebe que MPD está en ejecución en el ordenador.',
 
     /*
      * --------------------------------------------------------

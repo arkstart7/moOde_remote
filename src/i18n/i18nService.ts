@@ -17,6 +17,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { formatTemplate } from './format';
 
+import { readMigratedStorageValue } from '../services/storageMigration';
+
 import { DEFAULT_LANGUAGE, isLanguage, Language } from './language';
 
 import { detectSystemLanguage } from './localeDetector';
@@ -42,7 +44,13 @@ export { LANGUAGES } from './language';
 
 export type { Language } from './language';
 
-const LANGUAGE_KEY = '@foobar_remote/language';
+const LANGUAGE_KEY = '@moode_remote/language';
+
+/*
+ * Ключ языка из прежней версии приложения (FoobarRemote).
+ * При первом чтении значение переносится в новый ключ.
+ */
+const LEGACY_LANGUAGE_KEY = '@foobar_remote/language';
 
 const DICTIONARIES: Record<Language, TranslationDictionary> = {
     en,
@@ -80,7 +88,10 @@ export async function loadLanguage(): Promise<Language> {
     }
 
     try {
-        const value = await AsyncStorage.getItem(LANGUAGE_KEY);
+        const value = await readMigratedStorageValue(
+            LANGUAGE_KEY,
+            LEGACY_LANGUAGE_KEY,
+        );
 
         cachedLanguage = parseLanguage(value);
     } catch (error) {

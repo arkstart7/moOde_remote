@@ -1,11 +1,11 @@
 /**
  * @file src/library/LibraryImporter.ts
  *
- * Преобразует исходную коллекцию Foobar2000 во внутреннюю
+ * Преобразует исходную коллекцию MPD во внутреннюю
  * структуру Library.
  *
  * Источником данных служит медиатека MPD (см. mpdCatalogService),
- * записи которой приводятся к форме FoobarTrack.
+ * записи которой приводятся к форме MpdTrack.
  */
 
 import { Library, LibraryTrack } from './types';
@@ -13,7 +13,7 @@ import { Library, LibraryTrack } from './types';
 /**
  * Представление одного трека исходной коллекции.
  */
-export interface FoobarTrack {
+export interface MpdTrack {
     path: string;
     subsong_index: number;
     length: number;
@@ -33,10 +33,10 @@ export interface FoobarTrack {
 /**
  * Представление всей исходной коллекции.
  */
-export type FoobarLibrary = FoobarTrack[];
+export type MpdTrackList = MpdTrack[];
 
 /**
- * Импортирует библиотеку Foobar2000 во внутренний формат Library.
+ * Импортирует библиотеку MPD во внутренний формат Library.
  *
  * Правила импорта:
  *
@@ -50,10 +50,10 @@ export type FoobarLibrary = FoobarTrack[];
  * - Номер диска определяется только тегом discnumber.
  * - Треки сортируются сначала по номеру диска, затем по номеру трека.
  *
- * @param foobarLibrary - Массив треков исходной коллекции.
+ * @param mpdLibrary - Массив треков исходной коллекции.
  * @returns Внутренняя структура Library.
  */
-export function importLibrary(foobarLibrary: FoobarLibrary): Library {
+export function importLibrary(mpdLibrary: MpdTrackList): Library {
     const library: Library = {
         tracks: {},
         albums: {},
@@ -61,26 +61,26 @@ export function importLibrary(foobarLibrary: FoobarLibrary): Library {
         genres: {},
     };
 
-    for (const foobarTrack of foobarLibrary) {
-        const title = getFirstMetaValue(foobarTrack, 'title') ?? '';
+    for (const mpdTrack of mpdLibrary) {
+        const title = getFirstMetaValue(mpdTrack, 'title') ?? '';
 
-        const artist = getFirstMetaValue(foobarTrack, 'artist') ?? '';
+        const artist = getFirstMetaValue(mpdTrack, 'artist') ?? '';
 
         const albumArtist =
-            getFirstMetaValue(foobarTrack, 'album artist') ?? artist;
+            getFirstMetaValue(mpdTrack, 'album artist') ?? artist;
 
-        const album = getFirstMetaValue(foobarTrack, 'album') ?? '';
+        const album = getFirstMetaValue(mpdTrack, 'album') ?? '';
 
-        const genre = getFirstMetaValue(foobarTrack, 'genre') ?? '?';
+        const genre = getFirstMetaValue(mpdTrack, 'genre') ?? '?';
 
-        const date = getFirstMetaValue(foobarTrack, 'date');
+        const date = getFirstMetaValue(mpdTrack, 'date');
 
         const trackNumber = parseOptionalNumber(
-            getFirstMetaValue(foobarTrack, 'tracknumber'),
+            getFirstMetaValue(mpdTrack, 'tracknumber'),
         );
 
         const totalTracks = parseOptionalNumber(
-            getFirstMetaValue(foobarTrack, 'totaltracks'),
+            getFirstMetaValue(mpdTrack, 'totaltracks'),
         );
 
         /*
@@ -88,14 +88,14 @@ export function importLibrary(foobarLibrary: FoobarLibrary): Library {
          * В таком случае считаем, что это диск №1 из 1.
          */
         const discNumber =
-            parseOptionalNumber(getFirstMetaValue(foobarTrack, 'discnumber')) ??
+            parseOptionalNumber(getFirstMetaValue(mpdTrack, 'discnumber')) ??
             1;
 
         const totalDiscs =
-            parseOptionalNumber(getFirstMetaValue(foobarTrack, 'totaldiscs')) ??
+            parseOptionalNumber(getFirstMetaValue(mpdTrack, 'totaldiscs')) ??
             1;
 
-        const trackId = createTrackId(foobarTrack);
+        const trackId = createTrackId(mpdTrack);
 
         const artistId = createArtistId(albumArtist);
 
@@ -112,7 +112,7 @@ export function importLibrary(foobarLibrary: FoobarLibrary): Library {
         const libraryTrack: LibraryTrack = {
             id: trackId,
 
-            path: foobarTrack.path,
+            path: mpdTrack.path,
 
             title,
             artist,
@@ -128,7 +128,7 @@ export function importLibrary(foobarLibrary: FoobarLibrary): Library {
             discNumber,
             totalDiscs,
 
-            duration: foobarTrack.length,
+            duration: mpdTrack.length,
         };
 
         library.tracks[trackId] = libraryTrack;
@@ -270,7 +270,7 @@ export function importLibrary(foobarLibrary: FoobarLibrary): Library {
              * name = "cd_1%2"
              */
             if (totalDiscs > 1) {
-                libraryDisc.name = getParentDirectoryName(foobarTrack.path);
+                libraryDisc.name = getParentDirectoryName(mpdTrack.path);
             }
 
             libraryAlbum.discs[discNumber] = libraryDisc;
@@ -316,7 +316,7 @@ export function importLibrary(foobarLibrary: FoobarLibrary): Library {
  * возвращается undefined.
  */
 function getFirstMetaValue(
-    track: FoobarTrack,
+    track: MpdTrack,
     key: string,
 ): string | undefined {
     const values = track.meta?.[key];
@@ -359,9 +359,9 @@ function parseOptionalNumber(value: string | undefined): number | undefined {
  * Создает идентификатор трека.
  *
  * Путь вместе с subsong_index однозначно определяют
- * элемент Foobar2000.
+ * элемент MPD.
  */
-function createTrackId(track: FoobarTrack): string {
+function createTrackId(track: MpdTrack): string {
     return `${track.path}#${track.subsong_index}`;
 }
 

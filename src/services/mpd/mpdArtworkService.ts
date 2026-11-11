@@ -113,8 +113,16 @@ async function fetchChunkedBinary(
         let frame;
 
         try {
+            /*
+             * Аргументы являются частью ЕДИНОЙ строки команды: массив
+             * runMpdCommand — это посылка из нескольких команд (каждый
+             * элемент — отдельная строка протокола), а не аргументы
+             * одной команды. Разнесение команды и аргументов по
+             * строкам MPD считает протокольным нарушением и закрывает
+             * соединение без ACK.
+             */
             frame = await runMpdCommand(
-                [command, quotedPath, String(offset)],
+                [`${command} ${quotedPath} ${offset}`],
                 ARTWORK_TIMEOUT_MS,
             );
         } catch (error) {

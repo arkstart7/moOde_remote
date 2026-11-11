@@ -19,6 +19,8 @@ import { Appearance } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { readMigratedStorageValue } from '../services/storageMigration';
+
 import {
     DEFAULT_THEME_MODE,
     isThemeMode,
@@ -30,7 +32,13 @@ export { THEME_MODES, DEFAULT_THEME_MODE } from './themeMode';
 
 export type { ThemeMode, ResolvedTheme } from './themeMode';
 
-const THEME_KEY = '@foobar_remote/theme';
+const THEME_KEY = '@moode_remote/theme';
+
+/*
+ * Ключ темы из прежней версии приложения (FoobarRemote).
+ * При первом чтении значение переносится в новый ключ.
+ */
+const LEGACY_THEME_KEY = '@foobar_remote/theme';
 
 /*
  * undefined означает «еще не читали»,
@@ -55,7 +63,10 @@ export async function loadTheme(): Promise<ThemeMode> {
     }
 
     try {
-        const value = await AsyncStorage.getItem(THEME_KEY);
+        const value = await readMigratedStorageValue(
+            THEME_KEY,
+            LEGACY_THEME_KEY,
+        );
 
         cachedThemeMode = parseThemeMode(value);
     } catch (error) {

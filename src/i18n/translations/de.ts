@@ -114,7 +114,7 @@ export const de: TranslationDictionary = {
     'err.settings.notFound': 'MPD-Einstellungen sind nicht konfiguriert.',
     'err.settings.loadFailed': 'Einstellungen konnten nicht geladen werden.',
     'err.server.timeout':
-        'Der Server antwortet nicht. Prüfen Sie, ob foobar2000 auf dem Computer läuft.',
+        'Der Server antwortet nicht. Prüfen Sie, ob MPD auf dem Computer läuft.',
 
     /*
      * --------------------------------------------------------

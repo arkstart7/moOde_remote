@@ -45,7 +45,7 @@ describe('fetchMpdArtwork', () => {
         );
         expect(runMpdCommandMock).toHaveBeenNthCalledWith(
             2,
-            ['readpicture', 'music/track.mp3', '0'],
+            ['readpicture music/track.mp3 0'],
             ARTWORK_TIMEOUT_MS,
         );
     });
@@ -91,7 +91,7 @@ describe('fetchMpdArtwork', () => {
         );
         expect(runMpdCommandMock).toHaveBeenNthCalledWith(
             2,
-            ['albumart', 'music/track.mp3', '3'],
+            ['albumart music/track.mp3 3'],
             ARTWORK_TIMEOUT_MS,
         );
         expect(runMpdCommandMock).toHaveBeenCalledTimes(2);

@@ -92,7 +92,7 @@ describe('i18nService', () => {
         await service.saveLanguage('ru');
 
         expect(setItemMock).toHaveBeenCalledWith(
-            '@foobar_remote/language',
+            '@moode_remote/language',
             'ru',
         );
 

@@ -12,7 +12,7 @@ module.exports = {
     },
     overrides: [
         {
-            files: ['**/BeefwebWaveformSlider.tsx'],
+            files: ['**/WaveformSlider.tsx'],
             rules: {
                 'no-bitwise': 'off', // Отключаем для этого файла
             },

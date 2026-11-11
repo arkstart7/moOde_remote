@@ -117,7 +117,7 @@ export const ru: TranslationDictionary = {
     'err.settings.notFound': 'Настройки MPD не найдены.',
     'err.settings.loadFailed': 'Не удалось загрузить настройки.',
     'err.server.timeout':
-        'Сервер не отвечает. Проверьте, что foobar2000 запущен на компьютере.',
+        'Сервер не отвечает. Проверьте, что MPD запущен на компьютере.',
 
     /*
      * --------------------------------------------------------
@@ -155,7 +155,7 @@ export const ru: TranslationDictionary = {
         'Не удалось прочитать элементы плейлиста "{playlist}".{details}',
     'err.catalog.empty':
         'Плейлист "{playlist}" пуст. Отправьте в него всю медиатеку ' +
-        'из foobar2000.',
+        'из MPD.',
     'err.catalog.tooLarge':
         'Плейлист "{playlist}" содержит {total} элементов, что ' +
         'превышает предел {limit}.',

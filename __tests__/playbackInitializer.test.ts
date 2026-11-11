@@ -154,7 +154,7 @@ describe('initializeCurrentPlayback', () => {
          * и перезаписывается в AsyncStorage.
          */
         const saved = JSON.parse(
-            mockStorage.get('@foobar_remote/currentPlayback') ?? 'null',
+            mockStorage.get('@moode_remote/currentPlayback') ?? 'null',
         );
 
         expect(saved.currentAlbumId).toBe('album-b');

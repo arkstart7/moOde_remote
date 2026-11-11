@@ -117,7 +117,7 @@ export const en = {
     'err.settings.notFound': 'MPD settings are not configured.',
     'err.settings.loadFailed': 'Failed to load settings.',
     'err.server.timeout':
-        'The server is not responding. Check that foobar2000 is running on the computer.',
+        'The server is not responding. Check that MPD is running on the computer.',
 
     /*
      * --------------------------------------------------------
@@ -154,7 +154,7 @@ export const en = {
         'Failed to read items of playlist "{playlist}".{details}',
     'err.catalog.empty':
         'Playlist "{playlist}" is empty. Send your entire media ' +
-        'library from foobar2000 to it.',
+        'library from MPD to it.',
     'err.catalog.tooLarge':
         'Playlist "{playlist}" contains {total} items, which ' +
         'exceeds the limit of {limit}.',

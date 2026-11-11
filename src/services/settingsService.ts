@@ -12,12 +12,20 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { readMigratedStorageValue } from './storageMigration';
+
 export interface AppSettings {
-    foobarUrl: string;
-    foobarPort: string;
+    host: string;
+    port: string;
 }
 
-const SETTINGS_KEY = '@foobar_remote/settings';
+const SETTINGS_KEY = '@moode_remote/settings';
+
+/*
+ * Ключ настроек из прежней версии приложения (FoobarRemote).
+ * При первом чтении значение переносится в новый ключ.
+ */
+const LEGACY_SETTINGS_KEY = '@foobar_remote/settings';
 
 /*
  * undefined означает «еще не читали»,
@@ -37,7 +45,10 @@ export async function loadSettings(): Promise<AppSettings | null> {
     }
 
     try {
-        const value = await AsyncStorage.getItem(SETTINGS_KEY);
+        const value = await readMigratedStorageValue(
+            SETTINGS_KEY,
+            LEGACY_SETTINGS_KEY,
+        );
 
         cachedSettings = value ? parseAppSettings(value) : null;
     } catch (error) {
@@ -69,7 +80,10 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
  */
 export async function clearSettings(): Promise<void> {
     try {
-        await AsyncStorage.removeItem(SETTINGS_KEY);
+        await Promise.all([
+            AsyncStorage.removeItem(SETTINGS_KEY),
+            AsyncStorage.removeItem(LEGACY_SETTINGS_KEY),
+        ]);
     } catch (error) {
         console.error('Failed to clear settings:', error);
 
@@ -114,7 +128,6 @@ function isAppSettings(value: unknown): value is AppSettings {
     const settings = value as Partial<Record<keyof AppSettings, unknown>>;
 
     return (
-        typeof settings.foobarUrl === 'string' &&
-        typeof settings.foobarPort === 'string'
+        typeof settings.host === 'string' && typeof settings.port === 'string'
     );
 }

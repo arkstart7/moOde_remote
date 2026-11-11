@@ -112,7 +112,7 @@ export const zh: TranslationDictionary = {
     'err.settings.notFound': '未配置 MPD 设置。',
     'err.settings.loadFailed': '无法加载设置。',
     'err.server.timeout':
-        '服务器无响应。请检查电脑上的 foobar2000 是否正在运行。',
+        '服务器无响应。请检查电脑上的 MPD 是否正在运行。',
 
     /*
      * --------------------------------------------------------

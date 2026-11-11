@@ -1,4 +1,4 @@
-package com.foobarremote
+package com.mooderemote
 
 import android.app.Application
 import com.facebook.react.PackageList
