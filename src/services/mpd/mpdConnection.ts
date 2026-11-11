@@ -395,16 +395,6 @@ export class MpdConnection {
 
                 this.commandsSent += commands.length;
 
-                /*
-                 * Временная диагностика: показывает последовательность
-                 * команд на каждом соединении, чтобы сопоставить их
-                 * с моментом обрыва (удалить после локализации причины).
-                 */
-                console.log(
-                    `MPD -> #${this.commandsSent}:`,
-                    commands.join(' | '),
-                );
-
                 this.socket.write(utf8Encode(commands.join('\n') + '\n'));
             });
 
@@ -431,13 +421,6 @@ export class MpdConnection {
     }
 
     private handleData(data: Uint8Array): void {
-        /*
-         * Временная диагностика: подтверждает, что ответы сервера
-         * вообще доставляются в JS-слой (удалить после локализации
-         * причины обрывов).
-         */
-        console.log(`MPD <- ${data.length} bytes`);
-
         this.buffer.append(data);
 
         this.bytesReceived += data.length;
@@ -506,28 +489,20 @@ export class MpdConnection {
         }
 
         /*
-         * Диагностика закрытия удаленной стороной: дамп начала буфера
-         * показывает, что MPD успел прислать перед FIN (полный кадр,
-         * частичный ответ или ничего), что помогает отличить серверный
-         * разрыв от остановки потока данных.
+         * Диагностика закрытия удаленной стороной: метрики жизни
+         * соединения помогают отличить серверный разрыв от
+         * остановки потока данных (дамп буфера убран после
+         * подтверждения корневой причины).
          */
-        const view = this.buffer.view();
-
-        const preview = Array.from(view.subarray(0, 160))
-            .map(byte => byte.toString(16).padStart(2, '0'))
-            .join(' ');
-
         const pending = this.pending;
 
         console.warn(
             'MPD connection closed by remote:',
-            `bufferedBytes=${view.length}`,
             `pending=${pending ? 'yes' : 'no'}`,
             pending ? `pendingCommand=${pending.command}` : '',
             pending ? `pendingForMs=${Date.now() - pending.sentAt}` : '',
             `sent=${this.commandsSent}`,
             `received=${this.bytesReceived}`,
-            `buffer=${preview}`,
         );
 
         this.closedByRemote = true;
