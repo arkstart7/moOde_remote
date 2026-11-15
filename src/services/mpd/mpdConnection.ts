@@ -50,6 +50,16 @@ export type MpdSocketFactory = (
 /** Таймаут ожидания ответа на обычную команду. */
 export const COMMAND_TIMEOUT_MS = 10_000;
 
+/**
+ * Таймаут установления TCP-соединения.
+ *
+ * Отдельный от COMMAND_TIMEOUT_MS, потому что тот начинает действовать
+ * только после открытия сокета. Без этого таймаута connect к
+ * недоступному хосту (молчаливая потеря пакетов) висит на системном
+ * TCP-ретрансмите до двух минут и дольше.
+ */
+export const CONNECT_TIMEOUT_MS = 5_000;
+
 /** Приводит данные сокета к Uint8Array независимо от формы доставки. */
 export function toSocketBytes(data: unknown): Uint8Array {
     if (typeof data === 'string') {
@@ -78,14 +88,48 @@ export const tcpSocketFactory: MpdSocketFactory = (host, port) => {
     return new Promise((resolve, reject) => {
         let socket: ReturnType<typeof TcpSocket.connect> | null = null;
 
+        let connectTimer: ReturnType<typeof setTimeout> | null = null;
+
+        let settled = false;
+
         const fail = (error: unknown): void => {
+            if (settled) {
+                return;
+            }
+
+            settled = true;
+
+            if (connectTimer !== null) {
+                clearTimeout(connectTimer);
+
+                connectTimer = null;
+            }
+
+            socket?.destroy();
+
             reject(error instanceof Error ? error : new Error(String(error)));
         };
 
         try {
+            connectTimer = setTimeout(() => {
+                fail(
+                    new Error(
+                        `Connection timeout (${CONNECT_TIMEOUT_MS} ms) to ${host}:${port}`,
+                    ),
+                );
+            }, CONNECT_TIMEOUT_MS);
+
             socket = TcpSocket.connect({ host, port }, () => {
-                if (!socket) {
+                if (settled) {
                     return;
+                }
+
+                settled = true;
+
+                if (connectTimer !== null) {
+                    clearTimeout(connectTimer);
+
+                    connectTimer = null;
                 }
 
                 resolve({

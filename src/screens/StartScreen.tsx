@@ -359,7 +359,7 @@ export default function StartScreen({ navigation }: Props) {
             >
                 <View style={styles.coverImageContainer}>
                     <Image
-                        source={require('../assets/images/no-album-art.jpg')}
+                        source={require('../assets/images/Speaker.gif')}
                         resizeMode="contain"
                         style={styles.coverImage}
                     />
